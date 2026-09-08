@@ -1,0 +1,16 @@
+[tool.ruff]
+# Target Python 3.12+
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+# Enable Pyflakes (F) and Pycodestyle (E, W) codes by default.
+# Also enable Isort (I) for import sorting.
+select = ["E", "F", "W", "I"]
+ignore = ["E203", "E402", "E501"] # E203: whitespace before ':' (black/ruff conflict); E402: imports not at top; E501: line too long
+
+[tool.ruff.lint.isort]
+known-first-party = ["backend"]
+
+[tool.pytest.ini_options]
+anyio_mode = "auto"

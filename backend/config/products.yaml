@@ -1,0 +1,182 @@
+# vQA Product Registry
+# ====================
+# Single source of truth for all products under test by the vQA platform.
+#
+# Schema version: 1 (bump if the structure changes in a breaking way)
+#
+# To add a new product:
+#   1. Add an entry in this file under the `products:` key.
+#   2. Create the per-product directories:
+#        playwright/tests/<slug>/
+#        knowledge/personas/<slug>/
+#   3. No Python code changes are required for product registration.
+#
+#   For cross-domain products (app lives on a different domain than the Angular SSO gateway,
+#   e.g. a legacy PHP app or an RC environment):
+#
+#   4. Add `playwright_base_url` with the URL tests navigate to AFTER login:
+#        playwright_base_url:
+#          <env>: <full URL of the authenticated app dashboard>
+#      See vppo and vpromotions entries for concrete examples.
+#      This is used by the computer-use codegen to emit the correct URL in generated tests.
+#
+#   5. Add users to playwright/fixtures/users/users.json with:
+#        { "product": "<slug>", "productUrl": "<same URL as playwright_base_url>" }
+#      This ensures generateStorageStates.mjs captures cross-domain session cookies.
+#
+#   6. Export a named constant from playwright/utils/setup.ts:
+#        export const PRODUCT_BASE_URL = process.env.PRODUCT_BASE_URL || PRODUCT_URL_MAP[TEST_ENV];
+#      Tests import and use this constant — never hardcode the URL in test files.
+#
+# Environments model (E-Option 3 from creative decision):
+#   Each product declares a named map of environments. If only one environment
+#   is listed, `default_environment` is auto-populated by the loader.
+#   Use `resolve_target_url(env=None)` to get the default URL.
+#
+# Roles:
+#   Must match keys in backend/engine/roles.py::ROLE_REGISTRY.
+#   A role key must appear in EXACTLY ONE product. Startup validation enforces
+#   mutual exclusivity.
+#
+# Secrets: NEVER put credentials here. Credentials live in AWS SSM
+#   under /vQA/roles/* and are resolved at runtime.
+
+schema_version: 1
+
+products:
+
+  vpromedia:
+    display_name: vProMedia
+    description: >-
+      Broadcast production management platform — the original vQA target product.
+      Covers ad trafficking, production, and on-air delivery workflows.
+    order: 1
+    environments:
+      local: http://localhost:4200
+      two-test: https://two-test.vcreative.net
+      smoketest: https://smoketest.vcreative.net
+      qa: https://qa.vcreative.net
+    default_environment: two-test
+    jira_board_ids: [27, 36]
+    roles:
+      - account_executive
+      - sales_manager
+      - sales_assistant
+      - production_manager
+      - producer
+      - gm_gsm
+      - dubber
+      - digital_director
+      - demo_prod_director
+    playwright_tests_dir: playwright/tests/vpromedia
+    personas_dir: knowledge/personas/vpromedia
+
+  vtrade:
+    display_name: vTrade
+    description: >-
+      Trade marketplace platform for managing sales opportunities,
+      trade orders, and pipeline visibility.
+    order: 2
+    environments:
+      two-test: https://two-test.vcreative.net
+      smoketest: https://smoketest.vcreative.net
+      qa: https://qa.vcreative.net
+    default_environment: two-test
+    jira_board_ids: [27, 36]
+    ticket_title_filter: "vTrade"
+    roles:
+      - vtrade_exec
+      - vtrade_business_manager
+      - vtrade_sales_manager
+    playwright_tests_dir: playwright/tests/vtrade
+    personas_dir: knowledge/personas/vtrade
+
+  vpromotions:
+    display_name: vPromotions
+    description: >-
+      Promotional campaign management platform for planning, trafficking,
+      and reporting on promotional events and sponsorships.
+    order: 3
+    environments:
+      rc: https://vpromotions-rc.vcreative.net/app_test.php/promo
+    default_environment: rc
+    # Ghost login must authenticate at the main vcreative site (shared SSO),
+    # then navigate to the product URL via the vcreative product selector.
+    # The vPromotions RC environment redirects to the vSuite SSO at two-test.vcreative.net.
+    ghost_login_environments:
+      rc: https://two-test.vcreative.net
+    # playwright_base_url: the URL tests should navigate to AFTER login.
+    # For cross-domain products this differs from environments (SSO gateway).
+    playwright_base_url:
+      rc: https://vpromotions-rc.vcreative.net/app_test.php/promo
+    jira_board_ids: [39, 67]
+    roles:
+      - vpromotions_user
+    playwright_tests_dir: playwright/tests/vpromotions
+    personas_dir: knowledge/personas/vpromotions
+
+  vep:
+    display_name: vEP
+    description: >-
+      Electronic programming guide and content scheduling platform.
+      (Stub — no roles or Jira boards configured yet.)
+    order: 4
+    environments:
+      two-test: https://two-test.vcreative.net
+      smoketest: https://smoketest.vcreative.net
+      qa: https://qa.vcreative.net
+    default_environment: two-test
+    jira_board_ids: [27, 36]
+    ticket_title_filter: "vEP"
+    roles: []
+    playwright_tests_dir: playwright/tests/vep
+    personas_dir: knowledge/personas/vep
+
+  vppo:
+    display_name: vPPO
+    description: >-
+      Pre-production order management platform for managing Creative Requests (CRs),
+      spot status lifecycles, script reviews, dubbing, and traffic scheduling.
+    order: 5
+    environments:
+      test: https://two-test.vcreative.net
+      qa: https://qa.vcreative.net
+    default_environment: qa
+    ghost_login_environments:
+      test: https://two-test.vcreative.net
+      qa: https://qa.vcreative.net
+    # playwright_base_url: the PHP app URL tests navigate to AFTER product selection.
+    # vPPO redirects from the Angular SSO gateway to this separate PHP domain.
+    playwright_base_url:
+      test: http://hotfixes.sandbox.internal.vcreative.net/mytlc/mytlc_logged.php
+      qa:   http://qa.sandbox.internal.vcreative.net/mytlc/mytlc_logged.php
+    jira_board_ids: [105, 171]
+    ticket_title_filter: "VPPO"
+    roles:
+      - vppo_account_executive
+      - vppo_digital_director
+      - vppo_dubber
+      - vppo_gm_gsm
+      - vppo_producer
+      - vppo_production_manager
+      - vppo_sales_assistant
+      - vppo_sales_manager
+      - vppo_traffic_manager
+      - vppo_voicer
+      - vppo_writer
+    playwright_tests_dir: playwright/tests/vppo
+    personas_dir: knowledge/personas/vppo
+
+  psn:
+    display_name: PSN
+    description: >-
+      Production services network platform.
+      (Stub — no roles or Jira boards configured yet.)
+    order: 6
+    environments:
+      qa: https://psn-qa.vcreative.net
+    default_environment: qa
+    jira_board_ids: [61, 68]
+    roles: []
+    playwright_tests_dir: playwright/tests/psn
+    personas_dir: knowledge/personas/psn

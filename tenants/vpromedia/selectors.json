@@ -1,0 +1,124 @@
+{
+  "_readme": "Selector map for vProMedia (vCreative). Each key maps to a real DOM locator. BM25 runs against 'description' fields to retrieve top-5 relevant selectors per AC step. Update descriptions to match natural-language used in Jira AC.",
+
+  "search-open-btn": {
+    "selector": "#top-open-search-panel",
+    "description": "Search button, open search panel, filter button, top navigation search"
+  },
+  "search-client-input": {
+    "selector": "input#client",
+    "description": "Client name autocomplete search field, client filter input, advertiser name field"
+  },
+  "search-client-option": {
+    "selector": "ul.p-autocomplete-list li.p-autocomplete-option",
+    "description": "Client autocomplete dropdown option, client name suggestion, advertiser suggestion item"
+  },
+  "search-adtypes-tab": {
+    "selector": "[id=\"'search-adtypes-tab'\"]",
+    "description": "Ad Types tab in search panel, ad type filter tab, advertisement type selection tab"
+  },
+  "search-adtype-input": {
+    "selector": "#adtypes ng-select input[role='combobox'], ng-select[formcontrolname='ad_types'] input",
+    "description": "Ad type dropdown input, advertisement type combobox, radio commercial filter, TV commercial filter"
+  },
+  "search-adtype-option": {
+    "selector": ".ng-option",
+    "description": "Ad type dropdown option, advertisement type selection, radio commercial option, TV spot option"
+  },
+  "search-status-tab": {
+    "selector": "#search-spotstatus-tab, [id=\"'search-spotstatus-tab'\"]",
+    "description": "Status tab in search panel, spot status filter tab, active archived status tab"
+  },
+  "search-status-dropdown": {
+    "selector": "p-multiselect#status_dropdown, p-multiselect[defaultlabel='Statuses'], p-multiselect[placeholder='Statuses']",
+    "description": "Status filter dropdown, spot status multiselect, active status filter, archived filter dropdown"
+  },
+  "search-execute-btn": {
+    "selector": "#do-search-btn",
+    "description": "Execute search button, do search button, run search, apply filters, submit search"
+  },
+  "search-save-btn": {
+    "selector": "#show-save-search-btn",
+    "description": "Save search button, save as folder button, save search as custom folder"
+  },
+  "search-folder-name-input": {
+    "selector": "#new-folder-name",
+    "description": "New folder name input, save search folder name field, custom folder name"
+  },
+  "search-save-confirm-btn": {
+    "selector": "#save-search-btn",
+    "description": "Confirm save search button, save folder submit button, finalize folder save"
+  },
+  "search-results-grid": {
+    "selector": ".p-datatable-tbody",
+    "description": "Search results grid, production orders table, results list, data grid body, order list"
+  },
+  "search-results-header": {
+    "selector": "h1, .v-page-header, .search-results-header",
+    "description": "Search results page header, results title, page heading, search results label"
+  },
+  "sidebar-panel": {
+    "selector": ".p-sidebar, .filter-overlay",
+    "description": "Sidebar panel, search filter panel, slide-out panel, filter overlay"
+  },
+  "sidebar-close-btn": {
+    "selector": ".p-sidebar .p-sidebar-close, .p-sidebar-close-icon",
+    "description": "Close sidebar button, dismiss panel, close search panel, hide filter sidebar"
+  },
+  "drafts-clear-all-btn": {
+    "selector": "button:has-text('CLEAR ALL DRAFTS'), .clear-drafts-btn",
+    "description": "Clear all drafts button, delete drafts button, remove all draft spots"
+  },
+  "confirm-yes-delete": {
+    "selector": "button:has-text('YES, DELETE'), p-confirmdialog button:has-text('Yes'), [role='alertdialog'] button:has-text('YES')",
+    "description": "Yes delete confirmation button, confirm deletion, approve delete dialog, YES DELETE button"
+  },
+  "confirm-cancel-btn": {
+    "selector": "button:has-text('Cancel'), p-confirmdialog button:has-text('No'), [role='alertdialog'] button:has-text('No')",
+    "description": "Cancel confirmation dialog, no button in delete dialog, dismiss confirm dialog"
+  },
+  "notifications-bell": {
+    "selector": "[aria-label*='notification'], .notification-bell, button.notification-icon",
+    "description": "Notifications bell icon, notification indicator, bell button, alerts icon"
+  },
+  "notifications-view-all-link": {
+    "selector": "a:has-text('VIEW ALL'), button:has-text('VIEW ALL')",
+    "description": "View all notifications link, view all link in notification modal, expand notifications"
+  },
+  "notifications-delete-all-link": {
+    "selector": "a:has-text('Delete all'), button:has-text('Delete all')",
+    "description": "Delete all notifications link, remove all notifications, clear all notifications"
+  },
+  "tasks-clipboard": {
+    "selector": "[aria-label*='task'], .task-icon, button.clipboard-icon",
+    "description": "Tasks clipboard icon, task assignments icon, job tasks button, clipboard button"
+  },
+  "login-email-input": {
+    "selector": "input[type='email'], input[placeholder*='Email'], input[name='email']",
+    "description": "Email input on login page, username field, email address input for authentication"
+  },
+  "login-password-input": {
+    "selector": "input#password, input[name='password']:not(#confirm_password)",
+    "description": "Password input on login page, password field for authentication"
+  },
+  "login-submit-btn": {
+    "selector": "button[type='submit'], button:has-text('Sign In'), button:has-text('Log In'), button:has-text('Login')",
+    "description": "Login submit button, sign in button, authenticate button, log in button"
+  },
+  "order-table-row": {
+    "selector": "tr.p-datatable-selectable-row, tr[app-vppo-spot-row]",
+    "description": "Production order table row, order row, spot row in orders table"
+  },
+  "success-toast": {
+    "selector": ".p-toast-message-success, .p-toast .p-toast-icon-success",
+    "description": "Success toast notification, saved successfully toast, success message, green toast"
+  },
+  "error-toast": {
+    "selector": ".p-toast-message-error, .p-toast .p-toast-icon-error",
+    "description": "Error toast notification, failure message, red toast, error alert"
+  },
+  "page-spinner": {
+    "selector": ".v-spinner, p-progress-spinner, .loading-overlay, .p-blockui",
+    "description": "Loading spinner, page loading indicator, progress spinner, blocking overlay"
+  }
+}

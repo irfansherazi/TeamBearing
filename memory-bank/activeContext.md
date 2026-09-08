@@ -1,0 +1,179 @@
+# Active Context
+
+## Current Focus
+- **vQA Reliability Improvement Sprint**: Implemented 6 items from the Success Factors Synthesis: doc drift fix, keyword filter fix, pre-flight session health check (DR-007), wall-clock/cost circuit breakers (DR-008), CB telemetry instrumentation (MVE-001), semantic element resolution (DR-011). 38/38 tests passing.
+- **TASK-118: vQA Playwright Test Suite Stability Sweep — 22 Failures**: E2E static test suite stabilization sweep. Completed all core stability implementations across helper utilities, configuration structures, and the 22 affected test files.
+- **TASK-117: Build Number Tracking & Sidebar Display**: Undergoing initial initialization and plan design. Defining Acceptance Criteria and obtaining user confirmation.
+
+## Recent Changes
+- **vQA Reliability Sprint (2026-07-16)**:
+    - **TC-1 Doc Fix**: Updated `systemPatterns.md` AC Quality Gate to accurately reflect the POOR/FAIR/GOOD three-tier behavior.
+    - **TC-5 Fix**: Fixed `goal_satisfiable_check` keyword filter from `>3` to `>=3` chars + 60-word stopword exclusion set.
+    - **DR-007**: Created `backend/engine/preflight_check.py` — 3-check pre-flight (URL reachability, auth freshness, role match). Wired into `routes.py` before `graph.astream()`.
+    - **DR-008**: Added `max_run_wall_clock_seconds` (1800s) and `max_run_cost_usd` ($2.00) to config. Added `run_started_at` to VQAState. Evaluator enforces both budgets with 80% early-warning logging.
+    - **MVE-001**: Created `backend/engine/cb_telemetry.py` — structured JSONL emitter to `.agent-logs/telemetry/cb_events.jsonl`. Wired into all 5 evaluator CB sites (amnesic_loop, global_iter, ac_level_cap, per_locator).
+    - **DR-011**: Added Pass 2 semantic noun-phrase matching to `goal_satisfiable_check` — bigram/trigram extraction matched against ARIA `name` fields. Fixed `None` ARIA snapshot safe default.
+- **TASK-118: vQA Playwright Test Suite Stability Sweep (BUILD_COMPLETE)**:
+    - Authored the comprehensive Feature Interrogation Report (`TASK-118-interrogation-report.md`) detailing the root causes and mitigation strategies for 22 suite-wide failures.
+    - Implemented a self-healing try-catch block inside session identity checks (`loginHelper.mjs`) to clear stale cookies and force logins automatically.
+    - Configured parallel worker mode for demo account checks in QA-298 to prevent AWS Fargate execution timeouts.
+    - Redirected QA-321 sorting checks to `folder/all` to isolate tests from empty Inbox database states.
+    - Upgraded QA-204's filter selectors to provide robust PrimeNG 19 / Angular compatibility.
+    - Optimized inline date-editing in QA-203 with `.fill()` and `.press('Tab')` to eliminate slow typing loops and prevent Chromium crashes.
+    - Toughened search panel drawer hydration checks and input focusing inside `ViewHelper.ts`.
+    - Integrated automatic 'folder/all' fallback and loader waits for archive validation in QA-254.
+    - Enforced recipient chip blurring and verified Send button enablement in email tests (QA-279).
+    - Created the `safeScroll` helper in `OrderHelper.ts` with layout settling delays to protect WebKit process stability.
+    - Built a single master orchestrator `qa-196-Files.test.ts` to execute steps 1 to 7 sequentially on a single worker, and deleted individual step wrapper files to eliminate parallel concurrency collisions.
+- **TASK-116: Bolstered Failure Report for Suite Runs (REFLECTION_COMPLETE)**:
+    - Authored comprehensive post-build reflection report (`reflection-TASK-116.md`) capturing JSDOM testing insights, async state expectations, and dynamic performance benefits.
+    - Synchronized all Antigravity Memory Bank registers (`tasks.md`, `progress.md`, `activeContext.md`) and set TASK-116 task file to `REFLECTION_COMPLETE`.
+- **TASK-116: Bolstered Failure Report for Suite Runs (BUILD_COMPLETE)**:
+    - Implemented Pydantic models and TypeScript schemas for `FailureDigestEntry`.
+    - Integrated dynamic, read-time failure digest resolution in the `/report` and `/stop` API endpoints with robust `_clean_error_to_summary` parsing.
+    - Added the Collapsible "❌ Failure Summary" panel and clipboard copy button in `SuiteResultsPanel.tsx` with off-screen fallback copy support for insecure HTTP origins.
+    - Achieved 100% test pass rate across pytest (`tests/test_playwright_suite_runner.py`) and Vitest (`SuiteResultsPanel.test.tsx`) suites with 0 lint/TS compiler warnings.
+- **TASK-115: Post-Run Test Healing — AI Prompt Generator (REFLECTION_COMPLETE)**:
+    - Compiled comprehensive post-build reflection report (`reflection-TASK-115.md`) capturing technical insights (React async testing fixes, python mocking details), evaluations, and recommendations.
+    - Synchronized Antigravity Memory Bank registers (`tasks.md`, `progress.md`, `activeContext.md`) and marked status as `REFLECTION_COMPLETE`.
+- **TASK-115: Post-Run Test Healing — AI Prompt Generator (BUILD_COMPLETE)**:
+    - Implemented `POST /playwright/heal-prompt` backend endpoint in `playwright_routes.py` and validated schemas in `schemas.py`.
+    - Created robust Head/Tail truncation (100 lines head, 150 lines tail) for large files (>300 lines) and integrated automated regex-based secret scrubbing.
+    - Built **🩹 Heal Tests** header button and the styled `<HealTestsModal />` in `SuiteResultsPanel.tsx` with async clipboard copying and select-all fallback.
+    - Achieved 100% test pass rate across pytest (`tests/test_playwright_healing.py`) and Vitest (`SuiteResultsPanel.test.tsx`) suites with no TypeScript compilation errors.
+- **TASK-115: Post-Run Test Healing — AI Prompt Generator (CREATIVE_COMPLETE)**:
+    - Authored Architecture Design (`memory-bank/creative/TASK-115-architecture.md`) detailing the `POST /api/playwright/heal-prompt` backend endpoint, robust error handling, and a smart Python-based context truncation algorithm for large files to respect token budget (8K-16K tokens).
+    - Authored UI/UX Design (`memory-bank/creative/TASK-115-uiux.md`) describing the "🩹 Heal Tests" button placement, interactive loading indicator, overlay modal backdrop blur, and clipboard copying visual feedback states.
+    - Authored User Journey Design (`memory-bank/creative/TASK-115-user-journey.md`) mapping the triage, compilation, modal interaction, and state transitions of the React healing layer.
+- **TASK-114: Parallel Headless Suite Runner with Pass/Fail Report (REFLECTION_COMPLETE)**:
+    - Verified parallel scheduling and concurrency throttling backend logic with `VQA_SUITE_WORKERS` semaphores and active suite lock validation (returning HTTP 429).
+    - Validated rigid subprocess-level timeout controls and PID registration/cleanup on server shutdown.
+    - Verified dynamic progress status reporting and standard error/stderr snippet capturing on failed runs.
+    - Validated state persistence on page reloads using browser `localStorage` integration on the frontend.
+    - Verified React component rendering in `SuiteResultsPanel.tsx`, including KPI totals, elapsed time calculations, and toggleable failed test logs.
+    - Achieved 100% test pass rate across both Pytest and Vitest unit testing suites.
+    - Compiled comprehensive post-build reflection report (`reflection-TASK-114.md`).
+- **TASK-114: Parallel Headless Suite Runner with Pass/Fail Report (CREATIVE_COMPLETE)**:
+    - Authored Architecture Design (`memory-bank/creative/TASK-114-architecture.md`) detailing dict state storage, active suite mutex locks, concurrency semaphore pooling, and rigid timeout termination limits.
+    - Authored UI/UX Design (`memory-bank/creative/TASK-114-uiux.md`) describing button triggers, KPI summary cards, results tables, and collapsible failure details panels.
+    - Authored User Journey Design (`memory-bank/creative/TASK-114-user-journey.md`) mapping run launching, dynamic progress updates, failure accordion inspection, and reload robustness.
+- **TASK-113: Fix "View Report" 404 Error in Dev and Prod (ARCHIVED)**:
+    - Updated frontend `RunTestView.tsx` to use the correct backend route path `/runs/${activeRunId}/report` for `onViewReport` and `onCopyLink`.
+    - Stacked `@router.get("/report/{run_id}")` and `@router.head("/report/{run_id}")` fallback decorators in `backend/api/routes.py` to route legacy patterns directly to the main report generator.
+    - Expanded unit tests in `tests/test_playwright_report_parsing.py` with the `test_get_and_head_run_report` cases to fully verify correctness of both GET and HEAD routes across legacy and new paths.
+    - Resolved python import warnings and ensured all backend linters (`ruff`) pass with zero errors.
+- **TASK-110: Playwright Test Results Real-Time & Summary View Enhancement (ARCHIVED)**:
+    - Designed, implemented, and fully validated the dual-reporter (`list`, `json`) strategy for Playwright subprocess execution in `backend/api/playwright_routes.py`.
+    - Added real-time log-stream parsing to capture live progress states and map them back to the frontend, and recursive post-run JSON parsing to capture error details, assertion exceptions, and skipped steps.
+    - Updated `_broadcast_ac_progress` in `backend/api/routes.py` to support caching/buffering to eliminate HTTP-to-WebSocket connection race conditions.
+    - Enhanced frontend `RunTestView.tsx` to bind `ac.error` to `reasoning` inside the `acProgress` event listener, enabling inline error rendering in the steps table.
+    - Fixed multiple TypeScript type mismatches and missing props in the frontend unit tests (`CompleteView.test.tsx`, `RunningView.test.tsx`, `ssoKeepalive.test.ts`), restoring 100% green builds and test results.
+- **TASK-109: Human-Readable Playwright Library Card Headers (ARCHIVED)**:
+    - Designed and implemented the robust `getTestDisplayName` formatting utility inside `frontend/src/lib/testFormatting.ts`.
+    - Updated `PlaywrightPage.tsx` and `PlaywrightLibrary.tsx` to display clean, human-readable card titles while preserving technical IDs as meta sub-elements.
+    - Authored a comprehensive frontend Vitest suite in `PlaywrightPage.test.tsx` achieving 100% test pass rate with zero regressions.
+- **TASK-108: Auto-Route Jira Cards to Existing Playwright Tests (ARCHIVED)**:
+    - Designed, implemented, and fully validated inline matching and direct execution of static Playwright tests from the vQA dashboard when a mapped ticket is selected.
+    - Added `GET /api/playwright/match/{ticket_id}` to check for matching tests in `playwright_index.json`.
+    - Integrated match banner inside `SelectView.tsx` with human-readable display name fallbacks, a selectable list for multi-matches, and custom actions ("Run Static Test" vs "Use AI Agent Instead").
+    - Wired `onStaticTestSelected` callbacks in `RunTestView.tsx` to directly launch static tests via `POST /api/playwright/run` and stream live terminal logs, skipping AI agent overhead.
+    - Verified all 13 backend pytest cases and 10 frontend Vitest cases green.
+    - Compiled comprehensive post-build reflection report (`reflection-TASK-108.md`).
+- **TASK-106: Jira-Driven UAT Platform Stabilization (ARCHIVED)**:
+    - Archived the completed Level 4 platform stabilization task and compiled the permanent archive (`archive-TASK-106.md`).
+    - Implemented stateless Linear Pipeline Python bridge (`linear_bridge.py`) managing background runs and self-healing.
+    - Integrated dynamic accessibility tree parsing (`a11y_discovery.py`) and injected semantic layouts into LLM generation prompts.
+    - Developed a unified, multi-signal state stagnation utility (`ui_delta.py`) measuring URL, DOM element count, ARIA hash, and overlay boundaries.
+    - Upgraded failure triage to support robust trace analysis with 100% automated accuracy.
+    - Conducted the sequential Golden 10 Benchmark corpus execution and mapped empirical self-healing success metrics.
+    - Authored the comprehensive convergence plan detailing a multi-phase trajectory to merge `/vc-uat` and the linear runner.
+- **TASK-103: Production Readiness Bundle (ARCHIVED)**:
+    - Archived the completed Level 2 task and created the permanent system archive documentation (`archive-TASK-103.md`).
+    - Raised Pydantic `StructuredACStep.max_actions` default from 8 → 15 to expand action runways.
+    - Raised fallback evaluator `_ac_cap` from 15 → 20 when no structured plan exists.
+    - Added stateful, dismissible amber alert reminder banner inside `TakeoverPanel.tsx` to prompt operators to interact with the browser when they have typed an explanation but no DOM actions are captured (`hitlActions.length === 0`).
+    - Styled the warning banner using specific, theme-compliant CSS classes in `index.css`.
+    - Added detailed "View Script" link and "Script Template Library" workflows inside `vSuite-actions.md`.
+    - Registered the `ROLE_EMAIL_SALES_EXEC` placeholder inside `.env` and `.env.example`.
+    - Silenced pytest collection warnings on `TestPlan` class by setting `__test__ = False` inside `backend/engine/schemas.py`.
+    - Verified all 5/5 targeted unit/integration tests and 65/65 frontend Vitest tests passing perfectly (100% green).
+- **TASK-102: Ghost Login Support (ARCHIVED)**:
+    - Archived the completed Level 3 task and created the permanent system archive documentation (`archive-TASK-102.md`).
+    - Added `GHOST_LOGIN` step type to the `StepType` Pydantic enum and schema in `backend/engine/schemas.py`.
+    - Enhanced `backend/engine/ac_parser.py` and its prompt instructions in `backend/engine/prompts.py` to parse phrases like "Ghost In As [user]" into structured steps containing `target_user` fields.
+    - Retooled the AC Quality Gate in `backend/engine/ac_quality_gate.py` to detect "Ghost In As" in raw card text pre-flight, emitting a `GHOST_CREDENTIALS_REQUIRED` warning block that halts pre-execution and requests admin credentials immediately.
+    - Implemented a brand-new LangGraph executor node in `backend/engine/ghost_login_node.py` registered within the main graph in `backend/engine/graph.py`.
+    - Created `/runs/{run_id}/ghost-credentials` in `backend/api/routes.py` and its supporting schemas in `backend/api/schemas.py` to securely ingest admin credentials at run time.
+    - Authored the React component `GhostCredentialPanel.tsx` in `frontend/src/components/` with an elegant, responsive design.
+    - Created `knowledge/blueprints/ghost_login.yaml` specifying stable selectors, timing contracts, and step-by-step UI actions.
+    - Verified 22/22 unit/integration tests and 30/30 existing role-switching regression tests passing perfectly (100% green).
+    - Extracted key learnings: secure, ephemeral run-time credential injection via LangGraph, and fault-tolerant element-not-found UI escalations.
+- **TASK-101: DVQ Re-Check Loop Evaluator Integration (ARCHIVED)**:
+    - Archived the completed Level 3 task and created the permanent system archive documentation (`archive-TASK-101.md`).
+    - Added `deferred_verification_successes` state field to track passed rechecks.
+    - Integrated the final DVQ recheck loop in both the normal completion block and the post-verifier recheck guard in `evaluator_node`.
+    - Updated report header, table, and reporter node to exclude failed rechecks from effective completed sets, mark failed rechecks as failure rows with an `✗` icon, and mark successful rechecks with the green `🔁 Re-verified` badge using the `reverified-badge` class.
+    - Added a robust unit and integration test suite with 4 new tests in `tests/test_task_101_dvq_recheck.py`, achieving 100% test pass rate with zero regressions.
+- **TASK-100: KB TF-IDF Minimum Similarity Threshold (ARCHIVED)**:
+    - Archived the completed Level 2 task and created the permanent system archive documentation (`archive-TASK-100.md`).
+    - Implemented Pydantic-based `kb_min_similarity_score` (representing `KB_MIN_SIMILARITY_SCORE` env var) defaulting to `0.2` in `backend/config.py`.
+    - Added configurable minimum similarity thresholding to `TestPlanVault.query_plans()` in `backend/kb/rag.py` using cosine-similarity (`1.0 - distance`).
+    - Handled zero-results empty return bounds safely and created robust, fast unit tests in `tests/test_feat_088_min_score.py`.
+    - Documented and defaulting `KB_MIN_SIMILARITY_SCORE=0.2` in `.env.example`.
+    - Verified 5/5 target tests passing.
+- **TASK-100: KB TF-IDF Minimum Similarity Threshold (REFLECTION_COMPLETE)**:
+    - Completed the post-build reflection phase and updated the memory bank.
+    - Extracted key learnings: Cosine Distance vs Cosine Similarity mapping in ChromaDB, and ChromaDB query response list-of-lists mock structure.
+    - Verified all 5/5 target tests passing GREEN with zero regressions.
+- **TASK-099: ADF Table Row Boundary Preservation (ARCHIVED)**:
+    - Archived the completed Level 2 task and created the permanent system archive documentation (`archive-TASK-099.md`).
+    - Implemented explicit Atlassian Document Format (ADF) table node parsing in `backend/jira/client.py` with pipe-separated rows and `[AC TABLE: N rows]` sentinel formatting.
+    - Updated prompt-level rule hook in `BDD_NORMALIZER_PROMPT` in `backend/engine/prompts.py` to generate distinct scenario blocks on sentinel match.
+    - Logged new rules `Recursive Parser Exclusions` and `Cardinality Sentinel Markers` in the memory bank rules.
+    - Verified all 5 unit and integration tests passing green.
+- **TASK-098: Pre-Parse Guidance UI Textarea (ARCHIVED)**:
+    - Archived the completed Level 2 task and created the permanent system archive documentation (`archive-TASK-098.md`).
+    - Delivered stateful, theme-aware "Additional Context" textarea in `ReviewView.tsx` with a live counter and 2000-character limit, plumbed through `RunTestView.tsx` to execute payload as `pre_parse_guidance`.
+    - Extracted 2 learned UI design guidelines: `keyed-local-state-isolation` and `form-label-counter-alignment` to prevent state leakage and layout vertical scroll jitter.
+    - Verified all 65/65 unit and integration tests passing green.
+- **TASK-097: Multi-Type Recovery Router (ARCHIVED)**:
+    - Archived the completed Level 3 task and created the permanent system archive documentation (`archive-TASK-097.md`).
+    - Integrated the multi-type sequential recovery router on the execution loop, enabling successive distinct recovery actions before escalation.
+    - Updated feature status for FEAT-079 to completed and logged learned architectural rules.
+- **TASK-095: Verification & Bridging to Static Code (ARCHIVED)**:
+    - Archived the completed Level 4 task and created the permanent system archive documentation (`archive-TASK-095.md`).
+    - Integrated the AI-to-Code test compiler with automated branching and Pull Request creation via GitHub CLI.
+    - Standardized predictive state verification checks inline on the execution loop to fast-fail in under 2 seconds.
+    - Updated feature status for FEAT-072 to completed and logged learned architectural rules.
+- **TASK-095: Verification & Bridging to Static Code (REFLECTION_COMPLETE)**:
+    - Completed the post-build reflection phase and updated the memory bank.
+    - Extracted two learned rules: `synthesis-llm-compiler-pattern` for Playwright compilation, and `predictive-verification-fast-fail` for low-latency self-healing checks.
+    - Verified 10/10 passing tests with zero regressions.
+- **TASK-094: See-Think-Act Loop Optimization (ARCHIVED)**:
+    - Implementation complete, verified, reflected, and archived.
+
+## Active Tasks
+- [ ] TASK-116: Bolstered Failure Report for Suite Runs (PLAN)
+- [x] TASK-113: Fix "View Report" 404 Error in Dev and Prod (ARCHIVED)
+- [x] TASK-111: Support HEAD Requests on Run Report Endpoint (ARCHIVED)
+- [x] TASK-110: Playwright Test Results Real-Time & Summary View Enhancement (ARCHIVED)
+- [x] TASK-109: Human-Readable Playwright Library Card Headers (ARCHIVED)
+- [x] TASK-108: Auto-Route Jira Cards to Existing Playwright Tests (ARCHIVED)
+- [x] TASK-103: Production Readiness Bundle (ARCHIVED)
+- [x] TASK-102: Ghost Login Support (ARCHIVED)
+- [x] TASK-101: DVQ Re-Check Loop Evaluator Integration (ARCHIVED)
+- [x] TASK-100: KB TF-IDF Minimum Similarity Threshold (ARCHIVED)
+- [x] TASK-099: ADF Table Row Boundary Preservation (ARCHIVED)
+- [x] TASK-098: Pre-Parse Guidance UI Textarea (ARCHIVED)
+- [x] TASK-097: Multi-Type Recovery Router (ARCHIVED)
+- [x] TASK-096: FAIR Quality Gate HITL Pre-Parse Guardrail (ARCHIVED)
+- [x] TASK-094: See-Think-Act Loop Optimization (ARCHIVED)
+- [x] TASK-106: Jira-Driven UAT Platform Stabilization (ARCHIVED)
+- [ ] TASK-093: Intelligent Ingestion & Pre-Flight Verification (PLAN)
+- [ ] TASK-064: Fix 404 errors for /reports, /tickets, /playwright/tests, /playwright/storage/status (PLAN)
+- [ ] TASK-012: Add vTrade User Personas (BUILD)
+- [ ] TASK-052: vcAPI RS256 SSO Migration (Implementation complete, pending review)
+
+## Next Steps
+- Obtain user approval for the implementation plan for `TASK-116` (Bolstered Failure Report for Suite Runs).
+- Proceed to implementation with `/vc-build TASK-116` to begin the TDD cycle.

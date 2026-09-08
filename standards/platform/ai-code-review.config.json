@@ -1,0 +1,43 @@
+{
+    "mode": "branch",
+    "branch": "",
+    "baseBranch": "Develop",
+    "branchNameRules": [
+        { "suffix": "-master", "baseBranch": "master" },
+        { "suffix": "-rc", "baseBranch": "Release-Candidate" }
+    ],
+    "instructionsFile": "pr-review-checklist.md",
+    "automatedChecks": {
+        "CQ-05": "noConsoleOrDebugger",
+        "CQ-06": "lint",
+        "CQ-07": "specConventions",
+        "CQ-01": "conventionGuardrails",
+        "CQ-02": "deadCodeAndBannerComments",
+        "CQ-03": "unsafeSpreadBeforeSort",
+        "CQ-04": "templateBindingsAndSqlModelSet",
+        "CQ-09": "htmlBindingConventions",
+        "CQ-10": "misleadingOptionalChaining",
+        "CQ-11": "noDoRequest",
+        "CQ-12": "booleanNullishOr",
+        "CQ-14": "noNavigatingErrorSeverity",
+        "CQ-16": "noHardCodedThanksgiving",
+        "CQ-19": "noUntypedBrowserHandlers",
+        "CQ-20": "apiDtoMapHygiene",
+        "CQ-23": "noAsyncAwait",
+        "CQ-24": "noHasOwnProperty",
+        "CQ-25": "noEslintDisable",
+        "CQ-29": "elseBraceSameLine",
+        "T-05": "specAsyncSetupAndSeedUsers",
+        "F-04": "historyInfoEscaping"
+    },
+    "advisoryAutomatedIds": ["CQ-01", "CQ-02", "CQ-03", "CQ-04", "CQ-09", "CQ-10"],
+    "sourceOfTruthDocs": [
+        "PROMPT_coding_conventions.md",
+        "Code-Conventions-Pilot.md",
+        "PROMPT_unit_test.md"
+    ],
+    "aiReviewCommand": "node scripts/ai-review/run-claude-review.js",
+    "aiReviewTimeoutMs": 900000,
+    "maxDiffLines": 8000,
+    "outputDir": ".ai-review"
+}

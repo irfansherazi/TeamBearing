@@ -1,0 +1,774 @@
+/* =============================================================================
+   CopilotSidebar.css — Styles for AC Step Tracker (sidebar + inline modes)
+   ============================================================================= */
+
+/* ---------------------------------------------------------------------------
+   Inline panel (full-width, replaces LiveBrowser)
+   --------------------------------------------------------------------------- */
+
+.copilot-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--bg-secondary, rgba(15, 15, 30, 0.9));
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 14px;
+  overflow: hidden;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--text-primary, rgba(255,255,255,0.88));
+}
+
+.copilot-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+}
+
+.copilot-panel__title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copilot-panel__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* override panel-header h2 default */
+.copilot-panel__header h2 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, rgba(255,255,255,0.9));
+}
+
+.copilot-panel__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.copilot-panel__count {
+  font-size: 11px;
+  color: var(--text-secondary, rgba(255,255,255,0.5));
+  white-space: nowrap;
+}
+
+.copilot-inline-bar {
+  width: 100px;
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.copilot-inline-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* ── Empty state ── */
+.copilot-panel__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 16px;
+  gap: 10px;
+  text-align: center;
+}
+
+.copilot-panel__empty-icon {
+  font-size: 28px;
+  opacity: 0.4;
+}
+
+.copilot-panel__empty p {
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+  max-width: 340px;
+  line-height: 1.6;
+}
+
+/* ── Step pill list ── */
+.copilot-inline-steps {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 8px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  max-height: 320px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.copilot-inline-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 18px;
+  border-left: 3px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.copilot-inline-step:hover {
+  background: rgba(255,255,255,0.025);
+}
+
+/* Status variants */
+.copilot-inline-step--pending        { opacity: 0.4; }
+.copilot-inline-step--in_progress    { border-left-color: #60a5fa; background: rgba(96,165,250,0.06); opacity: 1; animation: pulse-step 2s ease infinite; }
+.copilot-inline-step--passed         { border-left-color: #22c55e; opacity: 0.75; }
+.copilot-inline-step--failed         { border-left-color: #f87171; background: rgba(248,113,113,0.04); opacity: 1; }
+.copilot-inline-step--skipped        { border-left-color: rgba(255,255,255,0.15); opacity: 0.4; }
+.copilot-inline-step--awaiting_human { border-left-color: #fbbf24; background: rgba(251,191,36,0.07); opacity: 1; animation: pulse-warn 2s ease infinite; }
+
+@keyframes pulse-step {
+  0%,100% { background: rgba(96,165,250,0.06); }
+  50%      { background: rgba(96,165,250,0.11); }
+}
+@keyframes pulse-warn {
+  0%,100% { background: rgba(251,191,36,0.07); }
+  50%      { background: rgba(251,191,36,0.14); }
+}
+
+.copilot-inline-step__num {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.4);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.copilot-inline-step--passed   .copilot-inline-step__num { background: rgba(34,197,94,0.15);  color: #4ade80; }
+.copilot-inline-step--failed   .copilot-inline-step__num { background: rgba(248,113,113,0.15); color: #f87171; }
+.copilot-inline-step--in_progress .copilot-inline-step__num { background: rgba(96,165,250,0.15); color: #60a5fa; }
+.copilot-inline-step--awaiting_human .copilot-inline-step__num { background: rgba(251,191,36,0.15); color: #fbbf24; }
+
+.copilot-inline-step__icon {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  width: 14px;
+  text-align: center;
+  color: rgba(255,255,255,0.25);
+}
+
+.copilot-inline-step--pending        .copilot-inline-step__icon { color: rgba(255,255,255,0.2); }
+.copilot-inline-step--in_progress    .copilot-inline-step__icon { color: #60a5fa; }
+.copilot-inline-step--passed         .copilot-inline-step__icon { color: #22c55e; }
+.copilot-inline-step--failed         .copilot-inline-step__icon { color: #f87171; }
+.copilot-inline-step--skipped        .copilot-inline-step__icon { color: rgba(255,255,255,0.2); }
+.copilot-inline-step--awaiting_human .copilot-inline-step__icon { color: #fbbf24; }
+
+.copilot-inline-step__text {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.82);
+  word-break: break-word;
+}
+
+.copilot-inline-step__err {
+  display: block;
+  width: 100%;
+  font-size: 10.5px;
+  color: rgba(248,113,113,0.85);
+  font-style: italic;
+  margin-top: 3px;
+}
+
+.copilot-inline-step__sel {
+  display: block;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: rgba(163,230,53,0.85);
+  background: rgba(163,230,53,0.07);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Takeover actions row variant */
+.copilot-takeover__actions--row {
+  flex-direction: row !important;
+  gap: 8px !important;
+}
+
+.copilot-takeover__actions--row .copilot-btn {
+  flex: 1;
+}
+
+
+/* Design goals:
+   - Dark-mode glassmorphism card, feels integrated with the main panel
+   - Status badges that are instantly scannable (color + icon)
+   - Compact step list that doesn't waste vertical space
+   - Takeover panel stands out with a high-contrast warning treatment
+   ============================================================================= */
+
+/* ---------------------------------------------------------------------------
+   Sidebar container
+   --------------------------------------------------------------------------- */
+
+.copilot-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  min-width: 280px;
+  max-width: 360px;
+  height: 100%;
+  background: rgba(15, 15, 30, 0.85);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0 16px 16px 0;
+  overflow: hidden;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.88);
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Header
+   --------------------------------------------------------------------------- */
+
+.copilot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  flex-shrink: 0;
+}
+
+.copilot-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copilot-header__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.copilot-header__title {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.copilot-header__ticket {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(130, 180, 255, 0.9);
+  background: rgba(80, 130, 255, 0.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.03em;
+}
+
+/* ---------------------------------------------------------------------------
+   Progress bar
+   --------------------------------------------------------------------------- */
+
+.copilot-progress {
+  padding: 10px 16px 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.copilot-progress__bar-container {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.copilot-progress__bar {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.copilot-progress__label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.01em;
+}
+
+/* ---------------------------------------------------------------------------
+   Step list
+   --------------------------------------------------------------------------- */
+
+.copilot-empty {
+  margin: 24px 16px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+  text-align: center;
+  font-style: italic;
+}
+
+.copilot-step-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+.copilot-step-list::-webkit-scrollbar {
+  width: 4px;
+}
+.copilot-step-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+}
+
+/* ── Single step row ── */
+
+.ac-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 14px;
+  border-left: 3px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  cursor: default;
+}
+
+.ac-step:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Status-specific treatments */
+.ac-step--pending {
+  opacity: 0.45;
+}
+
+.ac-step--in_progress {
+  border-left-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.06);
+  opacity: 1;
+}
+
+.ac-step--passed {
+  border-left-color: #22c55e;
+  opacity: 0.8;
+}
+
+.ac-step--failed {
+  border-left-color: #f87171;
+  background: rgba(248, 113, 113, 0.05);
+  opacity: 1;
+}
+
+.ac-step--skipped {
+  border-left-color: rgba(255, 255, 255, 0.2);
+  opacity: 0.5;
+}
+
+.ac-step--awaiting_human {
+  border-left-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.07);
+  opacity: 1;
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% { background: rgba(251, 191, 36, 0.07); }
+  50%       { background: rgba(251, 191, 36, 0.13); }
+}
+
+/* Status icon */
+.ac-step__icon {
+  font-size: 13px;
+  line-height: 1.5;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+.ac-step--pending     .ac-step__icon { color: rgba(255,255,255,0.3); }
+.ac-step--in_progress .ac-step__icon { color: #60a5fa; }
+.ac-step--passed      .ac-step__icon { color: #22c55e; }
+.ac-step--failed      .ac-step__icon { color: #f87171; }
+.ac-step--skipped     .ac-step__icon { color: rgba(255,255,255,0.3); }
+.ac-step--awaiting_human .ac-step__icon { color: #fbbf24; }
+
+/* Step body */
+.ac-step__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ac-step__text {
+  margin: 0;
+  line-height: 1.45;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  word-break: break-word;
+}
+
+.ac-step__error {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(248, 113, 113, 0.9);
+  line-height: 1.4;
+  font-style: italic;
+  word-break: break-word;
+}
+
+.ac-step__selector {
+  display: inline-block;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 10px;
+  color: rgba(163, 230, 53, 0.9);
+  background: rgba(163, 230, 53, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+   Takeover panel
+   --------------------------------------------------------------------------- */
+
+.copilot-takeover {
+  margin: 12px 12px 0;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 12px;
+  padding: 14px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+  animation: slide-up 0.25s ease;
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.copilot-takeover__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fbbf24;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.copilot-takeover__step-card {
+  background: rgba(251, 191, 36, 0.06);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 8px;
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.copilot-takeover__step-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(251, 191, 36, 0.7);
+  margin-bottom: 2px;
+}
+
+.copilot-takeover__step-num {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fbbf24;
+  line-height: 1;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.copilot-takeover__step-text {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.55;
+}
+
+.copilot-takeover__error {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(248, 113, 113, 0.85);
+  line-height: 1.4;
+  font-style: italic;
+  word-break: break-word;
+}
+
+.copilot-takeover__instructions {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.5;
+}
+
+/* Action buttons */
+.copilot-takeover__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.copilot-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+  font-family: inherit;
+}
+
+.copilot-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.copilot-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.copilot-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.copilot-btn--primary {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.35);
+}
+
+.copilot-btn--secondary {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ---------------------------------------------------------------------------
+   Completion banner
+   --------------------------------------------------------------------------- */
+
+.copilot-complete {
+  margin: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.copilot-complete--pass {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.copilot-complete--fail {
+  background: rgba(248, 113, 113, 0.1);
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.copilot-complete--warn {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fcd34d;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+/* ---------------------------------------------------------------------------
+   HITL Captured Actions Feed
+   --------------------------------------------------------------------------- */
+
+.copilot-hitl-actions {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11.5px;
+}
+
+.copilot-hitl-actions__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.copilot-hitl-actions__waiting {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+  font-size: 11px;
+}
+
+.copilot-hitl-actions__captured {
+  color: #4ade80;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.copilot-hitl-actions__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.copilot-hitl-actions__item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 10.5px;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.copilot-hitl-actions__item:last-child {
+  border-bottom: none;
+}
+
+.copilot-hitl-actions__type {
+  flex-shrink: 0;
+  color: #60a5fa;
+  font-weight: 600;
+  width: 72px;
+}
+
+.copilot-hitl-actions__selector {
+  flex: 1;
+  color: rgba(255,255,255,0.6);
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copilot-hitl-actions__value {
+  color: #fbbf24;
+  font-style: italic;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+   HITL Explanation Input
+   --------------------------------------------------------------------------- */
+
+.copilot-hitl-explanation {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.copilot-hitl-explanation__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: default;
+}
+
+.copilot-hitl-explanation__required {
+  color: #f87171;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.copilot-hitl-explanation__input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  padding: 7px 10px;
+  resize: vertical;
+  min-height: 50px;
+  transition: border-color 0.15s ease;
+  outline: none;
+}
+
+.copilot-hitl-explanation__input:focus {
+  border-color: rgba(251, 191, 36, 0.5);
+  background: rgba(251, 191, 36, 0.04);
+}
+
+.copilot-hitl-explanation__input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+  font-style: italic;
+}
+
+.copilot-hitl-explanation__input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Also style the "no screenshot" hint text in TakeoverPanel */
+.takeover-no-screenshot-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 6px;
+  font-style: italic;
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "vc",
+  "description": "vCreative wrapper around Banyan Memory Bank — Jira-driven grooming, diagnosis, fix, and evidence workflows on top of /bmb:* commands",
+  "owner": {
+    "name": "vCreative",
+    "email": "josh.schauer@vcreativeinc.com"
+  },
+  "metadata": {
+    "description": "vCreative BMB wrapper (/vc:* commands)",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "vc",
+      "source": "./",
+      "description": "vCreative wrapper around Banyan Memory Bank (BMB). Adds Jira-driven grooming, diagnosis, fix, and evidence workflows on top of /bmb:* commands.",
+      "version": "0.1.0",
+      "author": {
+        "name": "vCreative",
+        "email": "josh.schauer@vcreativeinc.com"
+      },
+      "keywords": [
+        "vcreative",
+        "jira",
+        "bmb-wrapper",
+        "workflow"
+      ],
+      "category": "development",
+      "commands": "./commands"
+    }
+  ]
+}

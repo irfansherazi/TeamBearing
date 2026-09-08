@@ -1,0 +1,140 @@
+# knowledge/blueprints/approvals_workflow.yaml
+#
+# Recipe: approvals_workflow
+#
+# Opens an approval item (order, request, asset), clicks the Approve or Deny
+# button, then confirms the resulting confirmation dialog.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# WHY THIS RECIPE EXISTS
+# ────────────────────────────────────────────────────────────────────────────────
+# The vSuite approvals workflow always follows a three-step pattern:
+#   1. Click the item row/card to open the detail/side panel
+#   2. Click the action button ("Approve" or "Deny")
+#   3. Click the "Yes" confirmation in the PrimeNG p-confirmDialog
+#
+# Step 3 is the common failure point for agents: the confirmation dialog appears
+# asynchronously and agents often try to verify the approval before the dialog
+# has been dismissed. This recipe handles all three steps atomically so that the
+# verifier only fires after the full workflow is complete.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# DOM STRUCTURE (vSuite approval detail)
+# ────────────────────────────────────────────────────────────────────────────────
+#
+# The item list / queue:
+#   <tr class="approval-row" (click)="openDetail(item)">...</tr>
+#   <div class="approval-card" (click)="openDetail(item)">...</div>
+#
+# After clicking the item, the detail panel or dialog opens:
+#   <button class="p-button" (click)="approveOrder()">Approve</button>
+#   <button class="p-button p-button-danger" (click)="denyOrder()">Deny</button>
+#
+# The confirmation dialog (PrimeNG p-confirmDialog):
+#   <p-confirmDialog>
+#     <div class="p-dialog-footer">
+#       <button class="p-button">No</button>
+#       <button class="p-button p-button-primary">Yes</button>
+#     </div>
+#   </p-confirmDialog>
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# PARAMETER USAGE
+# ────────────────────────────────────────────────────────────────────────────────
+#
+#   Approve item in first row:  item_selector="tbody tr:first-child", action="Approve"
+#   Deny item by class:         item_selector=".pending-approval-card", action="Deny"
+#
+# The `action` parameter value must exactly match the button label in the DOM
+# (e.g. "Approve" not "approve" — PrimeNG buttons use sentence case).
+
+name: approvals_workflow
+description: >
+  Opens an approval item by clicking its row or card, clicks the Approve or Deny
+  action button, then confirms the resulting PrimeNG p-confirmDialog. Handles the
+  full three-step approval workflow atomically.
+
+# Hardware-level wait: Approvals often trigger complex state machine transitions and list refreshes.
+force_wait_before_next: true
+force_wait_ms: 1800
+
+trigger_keywords:
+  - approve
+  - deny
+  - "approve order"
+  - "deny request"
+  - "approval workflow"
+  - "review and approve"
+  - approvals
+  - "approve reject"
+  - "approval queue"
+  - "pending approval"
+  - "confirm approval"
+  - "approval action"
+
+parameters:
+  - name: item_selector
+    description: >
+      CSS selector for the approval row, card, or list item to click in order
+      to open the approval detail panel.
+      Examples:
+        "tbody tr:first-child"          (first row in the approvals table)
+        ".approval-card.pending"        (pending approval card)
+        "p-table tr.approval-row"       (approval row in a p-table)
+    allowed_pattern: "^[\\w\\s\\.\\-\\#\\[\\]=:\\/\\(\\)\\&,\\^\\*\\+\\'\\\"]+$"
+
+  - name: action
+    description: >
+      The visible label of the approval action button to click after opening
+      the detail panel. Must match the DOM button text exactly (case-sensitive).
+      Values: "Approve" | "Deny"
+    allowed_pattern: "^(Approve|Deny)$"
+
+steps:
+  # Sub-step 1: Click the approval item to open its detail panel or dialog.
+  # wait_after_ms: 500 allows the Angular side panel / dialog open animation to
+  # complete and the Approve/Deny buttons to become interactive.
+  - action: click
+    strategy: css_selector
+    selector: $item_selector
+    wait_after_ms: 500
+
+  # Sub-step 2: Click the Approve or Deny button in the detail panel.
+  # get_by_role with role=button + name=$action targets the correct action button
+  # without relying on brittle CSS class selectors that vary by vSuite version.
+  - action: click
+    strategy: get_by_role
+    role: button
+    name: $action
+    wait_after_ms: 300
+
+  # Sub-step 3: Click "Yes" in the PrimeNG p-confirmDialog.
+  # The confirmation dialog appears asynchronously after the action button click.
+  # wait_after_ms: 400 ensures the dialog has rendered and the Yes button is
+  # interactive before the next step runs.
+  - action: click
+    strategy: get_by_role
+    role: button
+    name: "Yes"
+    wait_after_ms: 400
+
+  # Sub-step 4: Wait for the approval status update to propagate.
+  # After "Yes" is clicked, Angular dispatches the approval API call and updates
+  # the item's status in the list. This wait prevents the verifier from checking
+  # before the status badge has refreshed.
+  - action: wait
+    wait_after_ms: 500
+
+# ── Verification ──────────────────────────────────────────────────────────
+# Verify completion by checking for a structural DOM change (confirmation
+# dialog closed and approval detail dismissed).
+verify_after:
+  type: element_hidden
+  selector: "p-confirmDialog, .p-dialog"
+
+cleanup_on_failure:
+  # Escape dismisses any open p-confirmDialog or detail panel.
+  # This leaves the approvals list visible and stable for planner retry.
+  - action: press_key
+    key: Escape
+    wait_after_ms: 300

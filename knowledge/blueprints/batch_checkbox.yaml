@@ -1,0 +1,158 @@
+# knowledge/blueprints/batch_checkbox.yaml
+#
+# Recipe: batch_checkbox
+#
+# Selects rows in a PrimeNG p-table using checkboxes.
+# Supports two modes:
+#   - mode="all"  → clicks the header checkbox to select/deselect all rows
+#   - mode="row"  → clicks an individual row checkbox by 1-based row_index
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# WHY THIS RECIPE EXISTS
+# ────────────────────────────────────────────────────────────────────────────────
+# PrimeNG p-table checkbox selection renders checkboxes differently depending
+# on context (header vs row). The header "select all" checkbox lives in <thead>,
+# while row checkboxes live in <tbody>. A naive "click the checkbox" instruction
+# forces the planner to reason about thead/tbody structure — this recipe
+# encapsulates that DOM knowledge.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# DOM STRUCTURE (PrimeNG p-table with selectionMode="multiple")
+# ────────────────────────────────────────────────────────────────────────────────
+#
+# PrimeNG v17:
+#   <p-table [selectionMode]="'multiple'">
+#     <thead>
+#       <tr>
+#         <th>
+#           <p-tableHeaderCheckbox>        ← "select all" checkbox
+#             <div class="p-checkbox">
+#               <div class="p-checkbox-box" />
+#             </div>
+#           </p-tableHeaderCheckbox>
+#         </th>
+#       </tr>
+#     </thead>
+#     <tbody>
+#       <tr>
+#         <td>
+#           <p-tableCheckbox>             ← per-row checkbox
+#             <div class="p-checkbox">
+#               <div class="p-checkbox-box" />
+#             </div>
+#           </p-tableCheckbox>
+#         </td>
+#       </tr>
+#     </tbody>
+#   </p-table>
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# SELECTOR STRATEGY
+# ────────────────────────────────────────────────────────────────────────────────
+# The single selector uses an OR-chain:
+#
+#   "$table_selector tr:nth-child($row_index) .p-checkbox-box, $table_selector th .p-checkbox-box"
+#
+# When mode="row" (row_index="1", "2", ...):
+#   tr:nth-child(1) targets the first <tr> in its parent (tbody row 1).
+#   The th clause is also present but th .p-checkbox-box is in thead — the
+#   executor clicks the first matching locator (the tbody row checkbox).
+#
+# When mode="all" (row_index="0"):
+#   tr:nth-child(0) is an invalid CSS selector — CSS :nth-child is 1-indexed,
+#   so nth-child(0) never matches any element. The OR-chain falls back to
+#   "$table_selector th .p-checkbox-box" which targets the header checkbox.
+#
+# This dual-path approach requires ONLY row_index to drive both modes without
+# any conditional YAML logic — the planner sets row_index="0" for "all" mode.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# PARAMETER USAGE GUIDE
+# ────────────────────────────────────────────────────────────────────────────────
+#
+#   Select all rows:     mode="all",  row_index="0"
+#   Select row 1:        mode="row",  row_index="1"
+#   Select row 3:        mode="row",  row_index="3"
+#
+# The mode parameter is informational (documents intent for logging/tracing).
+# The actual selector behaviour is controlled entirely by row_index.
+
+name: batch_checkbox
+description: >
+  Selects rows in a PrimeNG p-table using checkboxes. Set row_index="0" to click
+  the header "select all" checkbox (mode="all"), or row_index="1"+ to click an
+  individual row checkbox (mode="row").
+
+trigger_keywords:
+  - "select all"
+  - "batch select"
+  - checkbox
+  - "select rows"
+  - "check all"
+  - "multi-select rows"
+  - "row selection"
+  - "table checkbox"
+  - "select all rows"
+  - "deselect all"
+  - "header checkbox"
+  - "row checkbox"
+
+parameters:
+  - name: table_selector
+    description: >
+      CSS selector for the p-table container element. Used to scope the
+      checkbox locator so it targets the correct table on pages with multiple
+      tables.
+      Examples:
+        "p-table"               (any p-table on the page)
+        ".orders-table"         (table with CSS class)
+        "app-order-list p-table" (scoped to a component)
+    allowed_pattern: "^[\\w\\s\\.\\-\\#\\[\\]=:\\/\\(\\)\\&,\\^\\*\\+\\'\\\"]+$"
+
+  - name: mode
+    description: >
+      Selection mode — informational label for logging and planner context.
+      Use "all" when clicking the header checkbox to select all rows.
+      Use "row" when clicking an individual row checkbox.
+      The actual selector behaviour is driven by row_index.
+      Values: "all" | "row"
+    allowed_pattern: "^(all|row)$"
+
+  - name: row_index
+    description: >
+      Controls which checkbox is clicked:
+        "0"  → nth-child(0) is invalid CSS, falls back to header (th) checkbox
+        "1"  → first tbody row checkbox
+        "2"  → second tbody row checkbox
+        (and so on for higher row numbers)
+      Must be a non-negative integer string.
+    allowed_pattern: "^[0-9]+$"
+
+steps:
+  # Sub-step 1: Click the appropriate checkbox.
+  # OR-chain selector: the tr:nth-child($row_index) clause targets tbody rows
+  # for row_index >= 1. For row_index=0, nth-child(0) never matches, so the
+  # fallback "th .p-checkbox-box" selects the header "select all" checkbox.
+  - action: click
+    strategy: css_selector
+    selector: "$table_selector tr:nth-child($row_index) .p-checkbox-box, $table_selector th .p-checkbox-box"
+    wait_after_ms: 200
+
+  # Sub-step 2: Wait for the selection state to propagate through Angular's
+  # change detection and for the p-table to update aria-checked attributes.
+  - action: wait
+    wait_after_ms: 300
+
+cleanup_on_failure:
+  # Click the same checkbox again to deselect (toggle back to original state).
+  # This is safe as a no-op if the first click never landed.
+  - action: click
+    strategy: css_selector
+    selector: "$table_selector tr:nth-child($row_index) .p-checkbox-box, $table_selector th .p-checkbox-box"
+    wait_after_ms: 200
+
+# Verify that at least one checkbox in the table is now in checked state.
+# aria-checked='true' is set by PrimeNG on the .p-checkbox-box div after selection.
+verify_after:
+  type: element_visible
+  selector: "$table_selector .p-checkbox-box[aria-checked='true']"

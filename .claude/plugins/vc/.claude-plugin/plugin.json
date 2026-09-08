@@ -1,0 +1,16 @@
+{
+  "name": "vc",
+  "version": "0.1.0",
+  "description": "vCreative wrapper around Banyan Memory Bank (BMB). Adds Jira-driven grooming, diagnosis, fix, and evidence workflows on top of /bmb:* commands. WRAPS BMB, does not fork it.",
+  "author": {
+    "name": "vCreative",
+    "email": "josh.schauer@vcreativeinc.com"
+  },
+  "keywords": [
+    "vcreative",
+    "jira",
+    "bmb-wrapper",
+    "workflow"
+  ],
+  "commands": "./commands"
+}

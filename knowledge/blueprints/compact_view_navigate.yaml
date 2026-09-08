@@ -1,0 +1,101 @@
+# knowledge/blueprints/compact_view_navigate.yaml
+#
+# Recipe: compact_view_navigate
+#
+# Navigates between List / Compact / Minimal views in the Production Orders
+# table using the settings button (button#settings-btn).
+#
+# CRITICAL DISTINCTION:
+#   button#settings-btn  → View Type switcher (List/Compact/Minimal). Use this.
+#   button#sort-btn      → Sort popover inside Compact View. Different button.
+#
+# HOW ACTIVE VIEW IS DETECTED (from productionorders.html line 148):
+#   <div class="po-table-wrapper {{ selectedTableView | lowercase }}">
+#
+#   Angular applies the current view as a lowercase CSS class on div.po-table-wrapper:
+#     Modern (List view)  →  div.po-table-wrapper.modern
+#     Compact             →  div.po-table-wrapper.compact
+#     Minimal             →  div.po-table-wrapper.minimal
+#
+#   NOTE: The OLD selector li#compact_listview.active is WRONG.
+#   The li#compact_listview element only exists WHILE the p-menu popup is open.
+#   The p-menu closes on click, removing all li items from the DOM.
+#   Trying to verify li#compact_listview.active WILL always return NOT_YET.
+#
+#   The CORRECT persistent indicator is:
+#     div.po-table-wrapper.compact   → Compact view is active
+#     div.po-table-wrapper.modern    → List (Modern) view is active
+#     div.po-table-wrapper.minimal   → Minimal view is active
+
+name: compact_view_navigate
+description: >
+  Switches between List, Compact, and Minimal view types using the
+  settings button (button#settings-btn → click view label).
+  Uses the CORRECT view-switcher button, NOT the sort button.
+  Verifies via div.po-table-wrapper.{view_css_class} persistent DOM indicator.
+
+trigger_keywords:
+  - compact
+  - "compact view"
+  - "list view"
+  - "minimal view"
+  - navigate
+  - switch
+  - view type
+  - settings-btn
+  - listview
+  - compact_listview
+  - modern
+
+parameters:
+  - name: view_label
+    description: >
+      Visible label of the view to switch to, as it appears in the settings menu.
+      Examples: "Compact", "List", "Minimal"
+    allowed_pattern: '^(Compact|List|Minimal)$'
+
+  - name: view_css_class
+    description: >
+      Lowercase CSS class that Angular applies to div.po-table-wrapper when this
+      view is active. Derived from selectedTableView | lowercase in the template.
+      Values:
+        List view (Modern)  →  "modern"
+        Compact             →  "compact"
+        Minimal             →  "minimal"
+    allowed_pattern: '^(modern|compact|minimal)$'
+
+steps:
+  # Sub-step 1: Open the view-type settings menu.
+  # button#settings-btn is the VIEW SWITCHER — not the sort button.
+  - action: click
+    strategy: css_selector
+    name: button#settings-btn
+    wait_after_ms: 600   # Wait for p-menu popup to open and render
+
+  # Sub-step 2: Click the desired view label in the menu.
+  - action: click
+    strategy: get_by_text
+    name: $view_label
+    wait_after_ms: 1500  # Angular view transition takes ~500-1000ms to apply CSS class
+
+cleanup_on_failure:
+  # If the menu opened but the click failed, dismiss with Escape.
+  - action: press_key
+    key: Escape
+    wait_after_ms: 300
+
+# PERSISTENT DOM VERIFICATION:
+# Uses $view_css_class (auto-derived from view_label by fill_recipe) so the
+# selector is always correct for the target view:
+#   List    → div.po-table-wrapper.modern
+#   Compact → div.po-table-wrapper.compact
+#   Minimal → div.po-table-wrapper.minimal
+#
+# Previously used button#sort-btn (Compact-only indicator) which caused all
+# List/Minimal switches to permanently fail verification even when the view
+# DID switch successfully — the sort button doesn't exist in those views.
+verify_after:
+  type: element_visible
+  selector: "div.po-table-wrapper.$view_css_class"
+  timeout_ms: 10000
+

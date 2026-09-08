@@ -1,0 +1,155 @@
+# ──────────────────────────────────────────────────────────────────
+# vReview — .gitignore
+# ──────────────────────────────────────────────────────────────────
+
+# ── Session logs (generated, may contain sensitive info) ─────────
+.agent-logs/
+.agent-output/
+.agent
+.worktrees/
+.claude-logs/
+
+# ── Claude Code agent worktrees (ephemeral, not for tracking) ────
+.claude/worktrees/
+
+# ── AI review output ──────────────────────────────────────────────
+.ai-review/
+.env
+!.env.example
+
+# ── Python ────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.whl
+
+# ── Virtual environments ─────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── pytest / coverage ────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage/
+frontend/coverage/
+.tox/
+
+# ── mypy ──────────────────────────────────────────────────────────
+.mypy_cache/
+
+# ── IDE ───────────────────────────────────────────────────────────
+.mcp.json
+.ruff_cache/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── OS ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Node / React frontend ────────────────────────────────────────
+node_modules/
+package-lock.json
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ── Playwright ────────────────────────────────────────────────────
+# Local video recordings and screenshots (test artifacts)
+recordings/
+screenshots/
+test-results/
+playwright/test-results/
+playwright/storage/
+playwright/downloads/
+downloads/
+storage/qa/
+storage/test/
+storage/smoke/
+storage/replay/
+storage/hitl_traces/
+storage/pinned_plans/
+storage/feat118_baseline_metrics.json
+**/storageState_*.json
+
+# ── Docker ────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── Playwright traces & extended artifacts ────────────────────────────
+# (videos, traces, HAR files, test-results from Playwright invocations)
+playwright/memory-reports/
+playwright-report/
+trace.zip
+*.trace
+*.webm
+*.har
+trace/
+
+# ── AI / LLM runtime artifacts ────────────────────────────────────
+memory-bank/.test-logs/
+*.sqlite
+*.db
+*.db-shm
+*.db-wal
+*.jsonl
+*.bak
+
+# ── knowledge/ directory ──────────────────────────────────────────
+# TRACKED (manually curated):   *.md files (human_guidance.md, vSuite-actions.md, etc.)
+# IGNORED (auto-generated):     *.jsonl and *.json blobs that change every run
+knowledge/**/*.jsonl
+knowledge/**/*.json
+# TRACKED (manually curated):   these JSON registries are maintained by hand
+!knowledge/component_registry.json
+!knowledge/selector_registry.json
+!knowledge/unified_components.json
+# Do NOT ignore the entire knowledge/ dir — *.md files must be tracked.
+
+# ── vector store ──────────────────────────────────────────────────
+backend/memory/vector_store/.ingest_meta.json
+
+# ── Log & tmp directories ──────────────────────────────────────────
+.logs/
+logs/
+tmp/
+.github/
+
+# ── Credentials & tokens ──────────────────────────────────────────
+.auth/
+
+# ── Banyan local cache (machine-specific, never committed) ──────────
+memory-bank/.local/
+
+# ── Runtime artifacts (regenerated each run, may contain live secrets) ──
+# auth_states contain live JWTs / session cookies — MUST NOT be committed.
+memory/auth_states/
+# chromadb vector store & RAG indices — runtime state, rebuilt from source-of-truth files.
+storage/chromadb/
+memory/chroma_rag/
+memory/selector_rag/
+memory/rag_stats/
+
+# ── Local dumps / leftover copies (do not push) ─────────────────
+.build_number
+*.csv
+site_options_fail.png
+_run_nightly_tests*.py
+
+# ── Crash dumps ──────────────────────────────────────────────────
+*.stackdump
+
+# ── Runtime caches (regenerated on demand, machine-specific) ─────
+storage/learned_workflows.json
+storage/ac_parse_cache/
+storage/ac_parse_baseline/*.provisional.json

@@ -1,0 +1,80 @@
+# vQA Workflow Blueprint: Create Quick Order
+# Source: qo_form_basic.test.ts
+# Last verified: 2026-04-10
+
+name: Create Quick Order
+description: |
+  Complete Quick Order creation flow from the production orders page.
+  Uses verified selectors from qo_form_basic.test.ts lines 41-105.
+  All PrimeNG component interactions follow the exact human QA patterns.
+
+steps:
+  - action: click
+    strategy: get_by_role
+    role: link
+    name: "New Request +"
+    notes: "Opens the Quick Order slide-out panel"
+
+  - action: click
+    selector: "#qo-form-panel button"
+    notes: "Step 1 of Ad Type: click the dropdown trigger inside QO form panel"
+
+  - action: click
+    strategy: get_by_label
+    name: "Radio Commercial"
+    notes: "Step 2 of Ad Type: select the ad type option (NOT a combobox)"
+
+  - action: fill
+    strategy: get_by_role
+    role: searchbox
+    name: "Client "
+    value: "{client_partial}"
+    notes: "Type partial client name. Note trailing space in searchbox name."
+
+  - action: click
+    strategy: get_by_role
+    role: option
+    name: "{client_name}"
+    notes: "Click matching option. Use .locator('span').click() if strict mode."
+
+  - action: fill
+    strategy: get_by_role
+    role: textbox
+    name: "Spot title"
+    value: "{spot_title}"
+    notes: "Note lowercase 't' in 'title'"
+
+  - action: click
+    strategy: get_by_text
+    name: "Select Status"
+    notes: "Opens status dropdown (text-click, NOT combobox)"
+
+  - action: click
+    strategy: get_by_text
+    name: "{status}"
+    notes: "Select the desired status from the dropdown"
+
+  - action: fill
+    strategy: get_by_role
+    role: textbox
+    name: "Length "
+    value: "{length}"
+
+  - action: fill
+    strategy: get_by_role
+    role: textbox
+    name: "Rotation "
+    value: "100"
+
+  - action: fill
+    strategy: get_by_role
+    role: textbox
+    name: "Due Date "
+    value: "{due_date}"
+    notes: "Format: MM/DD/YYYY"
+
+  - action: click
+    strategy: get_by_role
+    role: button
+    name: "Submit All"
+    notes: "Only enabled when ALL required fields are filled"

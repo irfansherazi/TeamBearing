@@ -1,0 +1,35 @@
+{
+  "name": "vreview",
+  "version": "1.0.0",
+  "description": "vReview — AI code review and memory leak checks",
+  "private": true,
+  "scripts": {
+    "ai:review": "node scripts/ai-review.js",
+    "ai:review:changed": "node scripts/ai-review.js --mode=files",
+    "ai:review:scope": "node scripts/ai-review.js --scope-only",
+    "ai:review:scope:changed": "node scripts/ai-review.js --scope-only --mode=files",
+    "ai:review:validate": "node scripts/ai-review/validate-response.js",
+    "ai:review:selftest": "node --test scripts/ai-review",
+    "memory:test": "node scripts/memory-test.js",
+    "playwright:run": "npx playwright test",
+    "playwright:run:headed": "PWDEBUG=1 npx playwright test",
+    "playwright:auth": "node playwright/utils/generateStorageStates.mjs",
+    "playwright:report": "npx playwright show-report playwright-report",
+    "playwright:install": "npx playwright install chromium firefox webkit",
+    "test": "vitest run",
+    "test:core": "vitest run tests/core/",
+    "test:coverage": "vitest run tests/core/ --coverage",
+    "test:watch": "vitest tests/core/"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^25.9.1",
+    "@vitest/coverage-v8": "^4.1.8",
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  }
+}

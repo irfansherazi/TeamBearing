@@ -1,0 +1,148 @@
+# ──────────────────────────────────────────────────────────────────
+# vQA — Docker Compose (Interactive Mode)
+# ──────────────────────────────────────────────────────────────────
+#
+# Usage:
+#   docker compose -f docker/docker-compose.yml up --build
+#
+# This starts vQA in interactive mode:
+#   - Port 8000: FastAPI backend (API + Swagger docs)
+#   - Port 6080: noVNC live browser stream
+#   - Port 3000: React frontend (if built separately)
+#
+# The Product team opens http://localhost:3000 in their browser,
+# pastes a Jira ticket ID, selects a role, and watches the agent
+# work in real-time via the embedded noVNC iframe.
+#
+# Prerequisites:
+#   1. Docker Desktop for Mac installed and running
+#   2. A .env file in the project root with all required variables
+#      (copy .env.example and fill in values)
+# ──────────────────────────────────────────────────────────────────
+
+services:
+  # ── Backend: FastAPI + Playwright + noVNC ───────────────────────
+  vqa-backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: vqa-backend
+    ports:
+      # FastAPI backend — API + Swagger docs
+      - "${API_PORT:-8000}:8000"
+      # noVNC — live browser streaming
+      - "${NOVNC_PORT:-6080}:6080"
+    environment:
+      # ── Execution mode ─────────────────────────────────────────
+      - VQA_MODE=interactive
+      - DISPLAY=:99
+
+      # ── Jira credentials (from .env) ───────────────────────────
+      - JIRA_EMAIL=${JIRA_EMAIL}
+      - JIRA_API_TOKEN=${JIRA_API_TOKEN}
+      - JIRA_DOMAIN=${JIRA_DOMAIN}
+
+      # ── AWS credentials (from .env) ────────────────────────────
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_BEDROCK_REGION=${AWS_BEDROCK_REGION:-us-west-2}
+
+      # ── LLM / Bedrock ──────────────────────────────────────────
+      - LLM_PROVIDER=bedrock
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-anthropic.claude-3-5-sonnet-20241022-v2:0}
+      - BEDROCK_MODEL_ID_HEAVY=${BEDROCK_MODEL_ID_HEAVY:-us.anthropic.claude-sonnet-4-20250514-v1:0}
+      - BEDROCK_ROLES_KB_ID=${BEDROCK_ROLES_KB_ID:-JXMMTMTI06}
+      - AUTO_ESCALATE_THRESHOLD=${AUTO_ESCALATE_THRESHOLD:-3}
+
+      # ── S3 storage ─────────────────────────────────────────────
+      - S3_BUCKET=${S3_BUCKET:-vcreative-deployments}
+      - S3_PREFIX=${S3_PREFIX:-vSuitePlatform/Buildartif/vqa-results}
+
+      # ── Role credentials (optional fallback — KB is primary) ────
+      # Credentials are fetched from Bedrock Roles KB (JXMMTMTI06)
+      # at startup.  Only set these if running without KB access.
+      - ROLE_DEFAULT_PASSWORD=${ROLE_DEFAULT_PASSWORD:-}
+
+      # ── GitHub Integration (Phase 4B) ───────────────────────────
+      # Personal access token for private repo access.
+      # Optional — public repos can be fetched without a token.
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+
+      # ── Application settings ───────────────────────────────────
+      - TARGET_URL=${TARGET_URL:-https://two-test.vcreative.net}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - MAX_PLANNER_ITERATIONS=${MAX_PLANNER_ITERATIONS:-50}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - API_PORT=8000
+      - NOVNC_PORT=6080
+
+      # ── Auth ───────────────────────────────────────────────────
+      - API_AUTH_ENABLED=${API_AUTH_ENABLED:-false}
+      - API_KEYS=${API_KEYS:-}
+      - SSO_PUBLIC_KEY=${SSO_PUBLIC_KEY:-}
+
+      # ── State store (Phase 2) ───────────────────────────────────
+      # 'memory' (default) for single-container / local dev.
+      # 'redis' for multi-container / horizontal scaling.
+      - STATE_STORE=${STATE_STORE:-memory}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - REDIS_RUN_TTL_HOURS=${REDIS_RUN_TTL_HOURS:-24}
+
+    # ── Resource limits ──────────────────────────────────────────
+    # Playwright + Chromium + video recording need sufficient memory
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: "2.0"
+        reservations:
+          memory: 2g
+          cpus: "1.0"
+
+    # ── Shared memory size ────────────────────────────────────────
+    # Chromium needs more than the Docker default 64MB /dev/shm
+    shm_size: "2gb"
+
+    # ── Restart policy ────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Volume mounts ─────────────────────────────────────────────
+    volumes:
+      # Persist video recordings on the host for debugging
+      - ./volumes/recordings:/app/recordings
+      # Persist screenshots on the host for debugging
+      - ./volumes/screenshots:/app/screenshots
+      # Persist auth state across container restarts
+      - ./volumes/auth-states:/app/memory/auth_states
+      # Persist learned patterns DB across container restarts
+      - ./volumes/memory:/app/memory
+
+    # ── Health check ──────────────────────────────────────────────
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+    # ── Dependencies ──────────────────────────────────────────────
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ── Redis for distributed state ─────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: vqa-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ./volumes/redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped

@@ -1,0 +1,40 @@
+{
+  "_fixture_doc": {
+    "feature": "accessibility-tree-grounding",
+    "phase": "Phase 2 — Executor Integration + Telemetry",
+    "purpose": "Regression fixture documenting Success Metric #2 from the task spec: a known CSS-flake case where the a11y normalized path resolves an element that a pure CSS selector previously flaked on.",
+    "created": "2026-07-30",
+    "references": [
+      "task spec §Success metrics (2): at least one end-to-end run where the a11y path resolves at least one element that a pure CSS selector previously flaked on",
+      "Algorithm Decision 1: two-tier a11y probe (exact → normalized regex)",
+      "tests/test_executor_a11y_integration.py::TestA11yResolvesCSSSelectorFlake"
+    ]
+  },
+  "flake_case": {
+    "description": "PrimeNG button with trailing NBSP in accessible name",
+    "component": "PrimeNG p-button (Save / Submit type)",
+    "symptom": "CSS selector 'button.p-button-save' or get_by_role('button', name='Save') matches 0 elements when the button's aria-label includes a trailing non-breaking space (U+00A0) appended by the PrimeNG renderer",
+    "aria_name_as_emitted": "Save ",
+    "aria_name_normalized": "save",
+    "css_selector_behavior": "FLAKY — times out with 0 matches when DOM churn changes the class list (e.g. after a modal close animation)",
+    "a11y_exact_tier_behavior": "0 matches — name='Save\\u00a0' does not match the DOM's normalized accessible name on all Chromium builds",
+    "a11y_normalized_tier_behavior": "1 match — normalized regex /^\\s*save\\s*$/i catches both 'Save', 'Save ', 'Save\\u00a0'",
+    "resolution_path": "a11y_normalized",
+    "resolution_path_before_feature": "selector_fallback (or TIMEOUT on CSS-only path)"
+  },
+  "test_plan_step_example": {
+    "step_id": 1,
+    "goal": "Click Save button in order form",
+    "step_type": "CLICK",
+    "target_component": "button.p-button-save",
+    "aria_role": "button",
+    "aria_name": "Save ",
+    "aria_disambiguators": null,
+    "verification": [
+      {
+        "type": "URL_CHANGE",
+        "expected": "/orders"
+      }
+    ]
+  }
+}

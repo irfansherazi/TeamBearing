@@ -1,0 +1,19 @@
+name: hitl_select_contest_from_prf_category_test_run_001_0
+description: 'Auto-generated from HITL takeover — run=test-run-001, seq=0. AC step:
+  Select Contest from PRF Category dropdown'
+trigger_keywords:
+- contest prf
+- prf category
+- category dropdown
+- contest
+- prf
+parameters: []
+steps:
+- action: click
+  strategy: css_selector
+  selector: p-select[ng-reflect-option-label="prfCategory"]
+cleanup_on_failure: []
+verify_after: null
+is_sort_recipe: false
+force_wait_before_next: false
+force_wait_ms: 1500

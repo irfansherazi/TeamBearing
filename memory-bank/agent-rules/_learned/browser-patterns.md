@@ -1,0 +1,65 @@
+---
+derived_from: [hitl-portal-aware-click-capture, accessibility-tree-grounding, heal-playwright-tests-round4, heal-13-playwright-failures-on-two-test, custom-creds-prompt-when-required]
+evidence_count: 6
+last_validated: 2026-08-12
+priority: medium
+---
+# Learned Rules: browser-patterns
+
+_Auto-extracted from task reflections. Reinforced rules are promoted; unreinforced rules expire after 90 days._
+
+---
+
+## Rules
+
+- **navigation-resilient-injection** (`backend/engine/human_takeover.py`): When injecting JavaScript listeners into a live browser session (e.g., for event recording or UI monitoring), use Playwright's `page.on("framenavigated", ...)` or `page.on("load", ...)` events to automatically re-inject the payload whenever the user navigates to a new page or reloads the existing document. This ensures continuity of monitoring/recording across human-driven navigation events.
+  - _Source_: reflection-TASK-033 (2026-05-20)
+  - _Reinforced_: 0x
+
+- **playwright-bridge-expose-function**: Use Playwright's `page.expose_function()` to create a high-reliability bridge for streaming browser-side events back to the Python backend in real-time. This is superior to polling or periodic console log scraping for interactive features like live action recording.
+  - _Source_: reflection-TASK-033 (2026-05-20)
+  - _Reinforced_: 0x
+
+- **table-data-extraction** (`backend/engine/executor.py`): `document.body.innerText` is often insufficient for modern UI frameworks like PrimeNG or Angular that render content in custom component boundaries. When capturing page text for verification, explicitly query for `tbody tr td`, `[role="row"] td`, and `.p-datatable-tbody td` to ensure tabular data is included in the snapshot.
+  - _Source_: reflection-TASK-051 (2026-05-26)
+  - _Reinforced_: 1x
+
+- **playwright-transport-safety** (`backend/browser/context.py`): Explicitly check `browser.is_connected()` before calling `close()` and add common error patterns (e.g., `WriteUnixTransport`) to teardown suppression lists. This mitigates async double-close noise and "connection closed" exceptions during browser teardown in high-concurrency or containerized environments.
+  - _Source_: reflection-TASK-082 (2026-05-31)
+  - _Reinforced_: 0x
+
+- **standalone-verification-capture** (`backend/engine/verifier_node.py`): Verifier nodes MUST perform their own page state capture (`PageStateTracker.capture()`) rather than relying on the executor's state. This ensures a fresh "second opinion" and prevents race conditions with async UI updates.
+  - _Source_: reflection-TASK-083 (2026-06-01)
+  - _Reinforced_: 0x
+
+- **playwright-grid-reload-standard** (`playwright/tests/**/*.test.ts`): When preparing test data by creating and submitting a mock order via a modal or sidebar, the underlying data grid may not automatically refresh or fetch the new spot. Always explicitly navigate to a folder view (like `'All'` or `'Inbox'`) to reload the table, and use standardized selection helpers like `ViewHelper.getRow(page, title)` instead of fragile global selectors like `p-table tr` which can match header rows and fail.
+  - _Source_: reflection-TASK-112 (2026-06-08)
+  - _Reinforced_: 0x
+
+- **portal-detection-pattern** (`backend/engine/human_takeover.py` JS listener, PrimeNG/Angular CDK portal-mounted overlays): For portal detection in Playwright-injected JS, use a layered `.closest()` allowlist of vendor-prefixed class names (`p-select-overlay`, `p-dropdown-panel`, `p-autocomplete-panel`, `p-tieredmenu`, `p-menu`, `p-popover`, `po-sorting-dropdown-panel`, `sort-panel`) as primary detection, with `cdk-overlay-container` as anonymous-portal fallback. Reject DOM-position heuristics (e.g., "direct body child" detection) — Angular CDK inserts a wrapper container that makes positional detection one level too coarse. For trigger resolution, cascade three orthogonal signals: aria-owns/aria-controls → focus WeakMap (tracks last-focused main-doc element) → MutationObserver focus history — because PrimeNG v19's ARIA attributes are not universal across component types. Idempotency-guard each sub-install (`__vqa_portal_observer_installed__`, `__vqa_focus_tracker_installed__`) so re-injection on `framenavigated` disconnects the previous observer before re-installing.
+  - _Source_: reflection-hitl-portal-aware-click-capture (2026-07-29)
+  - _Reinforced_: 0x
+
+- **shared-overlay-dismissal-helper** (`playwright/utils/OrderHelper.ts`, `playwright/utils/QO_helpers.ts`, `playwright/tests/**/*.test.ts` — PrimeNG + Angular custom + CDK overlay-mask interception): When 2+ Playwright tests share an overlay-interception symptom (post-overlay clicks intercepted by lingering `.p-overlay-mask` / `.p-drawer-mask` / `.p-dialog-mask` / `.cdk-overlay-backdrop` / project-specific `.v-sidebar-mask` variants), extract a **single shared helper** that handles all known mask class families in one call site rather than patching each test individually. Strategy: Escape-first (dispatch to close popovers), then per-class-family DOM-removal fallback. Export from the shared `OrderHelper.ts` module so future tests import it instead of re-solving the class-name inventory. `heal-playwright-tests-round4` evidence: `dismissBlockingOverlays()` in `playwright/utils/OrderHelper.ts` handles 6 mask class families (PrimeNG + Angular custom + CDK) and is consumed at 8+ call-sites across QA-58/59 and QA-196 module files. Per-test `page.evaluate()` inline snippets (the pre-refactor pattern) leave the durability benefit stranded on individual tests — the shared helper is the durable artifact and per-test greens are the side effect. This aligns with the guiding principle: healing-task tokens only pay off when they produce artifacts that survive to run N+2.
+  - _Source_: reflection-heal-playwright-tests-round4 (2026-08-11)
+  - _Reinforced_: 1x (heal-13-playwright-failures-on-two-test: PR #65 built the helper but never called it from the QO flow — dismissBlockingOverlays was 8+ call-sites in QA-58/59 and QA-196 but zero in createBasicOrder/createOrderWithNewClient; the flow that most needed it was still exposed on two-test)
+
+- **healed-tests-must-survive-every-env** (`playwright/**/*.test.ts`, `playwright/utils/**/*.ts`, `playwright/storage/**`): Test healing done against a single environment silently couples the "fix" to that env's incidental config (default form values, presence of hand-crafted cache files, DOM quiet-time, keyboard-handler wiring). Before declaring a healing PR done, enumerate the assumptions the fix depends on and check whether every other configured env in `playwright.config.ts` `ENV_MAP` shares them. Concrete audit checklist: (a) do `playwright/storage/qa/` and `playwright/storage/test/` (and `smoke/`) each contain the same set of hand-crafted artifacts (`firm_settings_cache.json`, per-user storage states, per-test spot data)? (b) does the target UI widget render the same visible state (empty placeholder vs. prepopulated default) across envs? (c) do global timing budgets (`ENV_TIMEOUT_MULTIPLIER`) apply the same headroom to every remote env? `heal-13-playwright-failures-on-two-test` evidence: PR #65 healed 16 tests against qa; 13 subsequently failed on two-test because qa had (a) a hand-crafted `firm_settings_cache.json` with year-2027 sentinel timestamp that never existed for `test/`, (b) an empty "Select Status" placeholder while two-test defaults the field to "Needs Producing", (c) `ENV_TIMEOUT_MULTIPLIER` of 2.5× applied only to qa/smoke because a stale comment claimed `test` was localhost. Each was 1 line of config drift; combined they looked like 4 separate test bugs.
+  - _Source_: reflection-heal-13-playwright-failures-on-two-test (2026-08-12)
+  - _Reinforced_: 0x
+
+- **dry-sibling-functions-during-healing** (`playwright/utils/*.ts`, any utils module with copy-paste sibling functions): When healing a helper function (`createBasicOrder`), grep the utils module for copy-paste siblings (`createOrderWithNewClient`) that share the same failure signature and either (a) extract the shared body into a helper called from both sites, or (b) apply the same hardening inline to each. Do NOT leave one sibling hardened and the other naked — the next test that hits the naked path will reopen the same failure with a fresh callstack that looks like a new bug. `heal-13-playwright-failures-on-two-test` evidence: PR #65 hardened `createBasicOrder`'s status-select retry loop (lines 1272-1343) but `createOrderWithNewClient` still had a naked `page.getByText('Select Status').click()` at line 1834 that surfaced immediately on two-test. Fix was to extract `selectQOStatus(page, status)` — both call sites now inherit every subsequent hardening layer (dismissBlockingOverlays prefix, gated Escape, prepopulation early-return) for free.
+  - _Source_: reflection-heal-13-playwright-failures-on-two-test (2026-08-12)
+  - _Reinforced_: 0x
+
+- **playwright-zero-resolution-locator** (`playwright/**/*.test.ts`, `playwright/utils/**/*.ts`): `locator.click: Timeout Nms exceeded — waiting for locator ... .first()` is NOT the same as "element not visible" or "click intercepted." Zero-resolution timeout means the filter/selector chain assumes a widget state (e.g. empty placeholder text) that doesn't hold at the moment of the click. First diagnostic move: read the test-failed screenshot (`playwright/test-results/<test>/test-failed-1.png`) — the field's actual visible state is often orthogonal to what the locator expected. Second move: enumerate all visible states the widget can render (empty | prepopulated-target | prepopulated-non-target | loading | error) and add a locator alternative for each. `heal-13-playwright-failures-on-two-test` evidence: on two-test the QO Status field was prepopulated with "Needs Producing" while all existing locators were placeholder-anchored (`getByText('Select Status')`, filter chain demanding `span:has-text("Status" | "Select")`). Zero matches → 5s timeout per attempt with no other symptom.
+  - _Source_: reflection-heal-13-playwright-failures-on-two-test (2026-08-12)
+  - _Reinforced_: 0x
+
+- **spa-storage-state-inject-then-reload** (`backend/engine/auth_manager.py`, `backend/engine/computer_use/runner.py`, `backend/engine/persona_switch_node.py`, any file applying Playwright `storage_state` to an Angular SPA): Playwright's `browser.new_context(storage_state=...)` restores cookies reliably at context creation, but its per-origin localStorage restoration races Angular's initial route resolution — the router evaluates auth guards before localStorage finishes hydrating, so the app redirects to `/login` even when a valid `vc2JWT` is on disk. Cookies alone are not enough; the app reads the JWT from localStorage. Correct sequence: (1) `browser.new_context(storage_state=path)` so cookies are applied, (2) `page.goto(target_url)`, (3) read the state file and manually inject each localStorage entry via `await page.evaluate("localStorage.setItem(name, value)")` for the matching origin, (4) `await page.reload(wait_until="domcontentloaded")` so Angular's auth guard runs AFTER localStorage is populated, (5) verify JWT via `page.evaluate("localStorage.getItem('vc2JWT')")` and that the URL is NOT `/login` — raise on missing so a stale cache surfaces immediately instead of failing silently. This is the same pattern `persona_switch_node._perform_auth_switch` uses; extract it as a shared helper if you find yourself writing it a second time. `custom-creds-prompt-when-required` evidence: initial CU role-auth attempt landed the browser on `/#/login` despite valid storage state because the runner relied on `browser.new_context(storage_state=...)` alone; adding the inject-then-reload pattern fixed it end-to-end.
+  - _Source_: reflection-custom-creds-prompt-when-required (2026-08-12)
+  - _Reinforced_: 0x
+
+- **angular-dev-server-wait-until** (`backend/engine/auth_manager.py`, `backend/engine/persona_switch_node.py`, `backend/engine/computer_use/runner.py`, any Playwright login helper or navigator whose target URL may be an Angular `ng serve` dev-server like `localhost:4200`): Use `page.goto(url, wait_until="domcontentloaded")` (or `"load"`), NEVER `wait_until="networkidle"`, when the target URL may be an Angular dev-server. Webpack HMR keeps an open WebSocket to the browser, so `networkidle` (500ms of no network activity) never fires and the navigation blocks the full timeout budget before failing. This applies to three navigation points in a typical login flow: initial `page.goto`, post-submit `wait_for_load_state`, and any `page.reload`. The subsequent "wait for email input visible" / "poll for JWT" step already gates on the SPA being interactive, so switching to `domcontentloaded` is safe on prod URLs too. `custom-creds-prompt-when-required` evidence: three `networkidle` waits in `AuthManager._perform_login`, `_login_with_ephemeral_creds`, and `_apply_role_storage_state` each would have hung 30s on `localhost:4200` before failing; `domcontentloaded` in all three fixed the local env end-to-end with no regression on two-test.
+  - _Source_: reflection-custom-creds-prompt-when-required (2026-08-12)
+  - _Reinforced_: 0x

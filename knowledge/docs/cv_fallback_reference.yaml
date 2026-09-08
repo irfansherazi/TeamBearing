@@ -1,0 +1,117 @@
+# DOCUMENTATION ONLY — NOT A RECIPE BLUEPRINT
+# This file serves as a reference for CV Fallback logic and coordinate-based actions.
+# DO NOT move this file to knowledge/blueprints/ as it will cause a ValidationError 
+# because it contains custom actions (like coordinate_action) that extend 
+# the executor-level CV fallback but are not part of the standard RecipeStep schema.
+#
+# IMPLEMENTATION NOTE:
+# The core CV fallback logic is implemented in backend/engine/executor.py.
+# This file documents how that logic interacts with specific UI paradigms.
+# ────────────────────────────────────────────────────────────────────────────────
+
+# knowledge/docs/cv_fallback_reference.yaml
+#
+# Recipe: cv_fallback
+#
+# Proactive declaration for Canvas, Shadow DOM, and iFrame-hosted elements
+# that have no accessible DOM locator. When a planner encounters an AC step
+# targeting one of these element types, this recipe signals cv_fallback_eligible
+# so the executor lowers its failure threshold from 3 to 1.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# WHY THIS RECIPE EXISTS
+# ────────────────────────────────────────────────────────────────────────────────
+# Standard DOM-based selectors (CSS, ARIA role, text) are structurally unreachable
+# for:
+#   - <canvas> elements (renders pixels, not DOM nodes)
+#   - Shadow DOM components (closed roots not pierced by standard querySelector)
+#   - iFrame-hosted widgets (cross-origin DOM unavailable)
+#
+# Without this recipe, the agent must fail 3 consecutive times before the CV
+# fallback activates. With this recipe, the planner emits cv_fallback_eligible:
+# true on the action, reducing the executor threshold to 1 fail (one attempt,
+# then immediate CV invocation).
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# HOW THE EXECUTOR USES THIS RECIPE FLAG
+# ────────────────────────────────────────────────────────────────────────────────
+# In executor.py _dispatch_action():
+#   if action.get("cv_fallback_eligible") and fail_count >= 1:
+#       → activate CV fallback (lower threshold path)
+#   else:
+#       → standard threshold (CV_FALLBACK_MIN_DOM_FAILURES = 3)
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# WHEN TO USE
+# ────────────────────────────────────────────────────────────────────────────────
+# Use this recipe's coordinate_action step when:
+#   1. The target element is a <canvas> tag (charts, diagrams, drawing surfaces)
+#   2. The element is inside a web-component with a closed Shadow DOM
+#   3. The element is inside an <iframe> with cross-origin restrictions
+#   4. The ARIA tree shows no accessible role or name for the target
+#   5. Previous test runs consistently failed with STRICT_MODE or NOT_VISIBLE
+#      failures for this specific element
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# KNOWN LIMITATIONS
+# ────────────────────────────────────────────────────────────────────────────────
+# - Shadow DOM: Playwright's querySelectorAll does not pierce closed Shadow DOM.
+#   The SoM overlay uses getBoundingClientRect() which works for painted shadow
+#   elements, but the CSS fallback selector in mark_coordinate_map may not resolve.
+# - iFrame cross-origin: The SoM overlay is injected in the top-level page context;
+#   elements inside cross-origin iFrames will appear in the screenshot but their
+#   coordinates are relative to the viewport, which SoM correctly captures.
+# - Dynamic Canvas: Canvases that repaint faster than 100ms may shift between
+#   screenshot and click. Use wait_after_ms: 500 to stabilize.
+
+name: cv_fallback
+description: >
+  Computer Vision fallback for Canvas, Shadow DOM, and iFrame-hosted UI elements
+  that have no accessible DOM locator. Sets cv_fallback_eligible: true on the
+  coordinate_action step so the executor activates the SoM vision LLM path after
+  just 1 DOM failure instead of the default 3. Use when the target element is
+  a <canvas>, a closed Shadow DOM component, or an element inside a cross-origin
+  <iframe>.
+
+trigger_keywords:
+  - canvas
+  - shadow
+  - "shadow dom"
+  - "shadow-dom"
+  - iframe
+  - "web-component"
+  - webcomponent
+  - "no locator"
+  - "no aria"
+  - "cv fallback"
+  - "vision fallback"
+  - "coordinate click"
+  - "pixel element"
+  - chart
+  - diagram
+  - drawing
+
+steps:
+  # The coordinate_action step delegates to the CV fallback resolver.
+  # cv_fallback_eligible: true lowers the executor failure threshold from 3 to 1.
+  # The executor's CvFallbackResolver.resolve() captures a SoM screenshot,
+  # sends it with the target description to the vision LLM, and maps the
+  # returned mark_id back to exact viewport coordinates for page.mouse.click().
+  - action: coordinate_action
+    cv_fallback_eligible: true
+    description: >
+      Click the target element using Computer Vision coordinate resolution.
+      The executor will use Set-of-Marks to identify the element's coordinates
+      and fire a direct page.mouse.click(x, y) bypassing DOM selectors.
+    # wait_after_ms gives Angular change detection time to respond after the
+    # coordinate click lands (same as standard click step conventions).
+    wait_after_ms: 800
+    # strategy is left empty intentionally — coordinate_action bypasses the
+    # standard locator resolution chain entirely.
+    strategy: ""
+    name: ""
+
+# No verify_after defined at the recipe level — post-click verification is
+# handled by the executor's cv_fallback_state_change_check() which monitors
+# URL, ARIA snapshot, and element count delta within a 2-second window.
+# The verifier then marks the step CV_CLICK_SUCCESS or CV_CLICK_FAILED.

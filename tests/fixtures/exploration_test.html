@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>vQA Exploration Test Page</title>
+    <style>
+        .spacer { height: 2000px; background: #f0f0f0; }
+        #target-btn { padding: 20px; background: green; color: white; display: block; margin: 20px; }
+        .hidden-tab { display: none; }
+        .active-tab { display: block; }
+    </style>
+</head>
+<body>
+    <h1>Exploration Test Page</h1>
+    
+    <section id="scroll-target">
+        <p>This button is far below the fold.</p>
+        <div class="spacer"></div>
+        <button id="target-btn">Visible after scroll</button>
+    </section>
+
+    <section id="collapsed-target">
+        <div id="parent" aria-expanded="false" onclick="this.setAttribute('aria-expanded', 'true'); document.getElementById('child').style.display='block';">
+            Click to expand
+        </div>
+        <button id="child" style="display: none;">Visible after expand</button>
+    </section>
+
+    <section id="tab-target">
+        <div role="tablist">
+            <button role="tab" id="tab1" aria-selected="true">Tab 1</button>
+            <button role="tab" id="tab2" aria-selected="false" onclick="document.getElementById('content2').style.display='block';">Tab 2</button>
+        </div>
+        <div id="content1">Content 1</div>
+        <button id="content2" style="display: none;">Visible after tab click</button>
+    </section>
+</body>
+</html>

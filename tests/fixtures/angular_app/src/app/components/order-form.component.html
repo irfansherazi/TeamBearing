@@ -1,0 +1,18 @@
+<div class="form-group">
+  <label for="order-status">Status</label>
+  <p-select id="order-status" [options]="statusOptions" placeholder="Select a Status"></p-select>
+</div>
+
+<div class="form-group">
+  <label>Ad Type</label>
+  <p-dropdown [options]="adTypeOptions" placeholder="Choose Ad Type" inputId="ad-type-drop"></p-dropdown>
+</div>
+
+<div class="form-group">
+  <p-multiselect [options]="serviceOptions" placeholder="Select Services" aria-label="Services"></p-multiselect>
+</div>
+
+<div class="form-group">
+  <label>Hardcoded Dropdown</label>
+  <p-select [options]="[{label: 'Option A', value: 'A'}, {label: 'Option B', value: 'B'}]" placeholder="Hardcoded"></p-select>
+</div>

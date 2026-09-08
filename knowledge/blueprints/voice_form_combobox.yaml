@@ -1,0 +1,175 @@
+# knowledge/blueprints/voice_form_combobox.yaml
+#
+# Recipe: voice_form_combobox
+#
+# Types into a PrimeNG p-autocomplete input to trigger the search/suggestion
+# overlay, waits for the overlay to fully render, then clicks the desired option.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# WHY THIS RECIPE EXISTS
+# ────────────────────────────────────────────────────────────────────────────────
+# PrimeNG p-autocomplete debounces keystrokes (typically 300ms) before firing
+# its completeMethod output to Angular. After completeMethod runs, the Angular
+# service call returns suggestions and the overlay panel renders (another 200ms).
+#
+# Total latency from first keypress to clickable options: ~500–800ms depending
+# on network and Angular CD cycle. Agents that click immediately after fill()
+# routinely miss the overlay — this recipe hard-codes safe waits at each stage.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# DOM STRUCTURE (PrimeNG p-autocomplete)
+# ────────────────────────────────────────────────────────────────────────────────
+#
+# PrimeNG v17:
+#   <p-autocomplete [suggestions]="results" (completeMethod)="search($event)">
+#     <input class="p-autocomplete-input p-inputtext" />
+#   </p-autocomplete>
+#
+# PrimeNG v19 (updated class names):
+#   <p-autocomplete>
+#     <input class="p-autocomplete-input" />
+#   </p-autocomplete>
+#
+# After typing, the overlay is appended to <body>:
+#   <p-autocomplete-panel>
+#     <ul class="p-autocomplete-items">
+#       <li class="p-autocomplete-item">Voice Talent Name</li>
+#       ...
+#     </ul>
+#   </p-autocomplete-panel>
+#
+# The OR-chain selector "$combobox_selector input, $combobox_selector .p-autocomplete-input"
+# supports both PrimeNG versions by targeting either the input directly (when
+# combobox_selector already points to the input) or the p-autocomplete-input
+# class within the component.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# DEBOUNCE + OVERLAY WAIT TIMINGS
+# ────────────────────────────────────────────────────────────────────────────────
+#
+#   fill() step           wait_after_ms: 500  (covers 300ms debounce + API start)
+#   overlay render wait   wait_after_ms: 800  (covers API response + Angular CD)
+#   option click          wait_after_ms: 300  (covers overlay close animation)
+#   input update wait     wait_after_ms: 200  (confirms input reflects selection)
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# CLEANUP STRATEGY
+# ────────────────────────────────────────────────────────────────────────────────
+# If the option click fails (option not in list, overlay never appeared):
+#   1. Escape — closes the p-autocomplete overlay
+#   2. fill with empty string — clears the input so next attempt starts fresh
+# A dirty input value would trigger a new API call on the next attempt, which
+# could return unexpected results.
+
+name: voice_form_combobox
+description: >
+  Types into a PrimeNG p-autocomplete input to trigger suggestion search, waits
+  for the overlay panel to render (covering the debounce + API latency), then
+  clicks the matching option by its visible label.
+
+# Hardware-level wait: Autocomplete selection often triggers downstream form re-renders or API loads.
+force_wait_before_next: true
+force_wait_ms: 1500
+
+trigger_keywords:
+  - "voice combobox"
+  - "voice autocomplete"
+  - "search voice"
+  - "select voice talent"
+  - "voice form"
+  - voicer
+  - "talent combobox"
+  - "autocomplete search"
+  - "p-autocomplete"
+  - "talent search"
+  - "voice talent"
+  - "autocomplete input"
+  - "type to search"
+
+parameters:
+  - name: combobox_selector
+    description: >
+      CSS selector for the p-autocomplete component or its input element.
+      The recipe targets the actual input field using an OR-chain so either
+      the component selector or a direct input selector works.
+      Examples:
+        "p-autocomplete"                      (any p-autocomplete on page)
+        ".voice-form p-autocomplete"          (scoped to a voice form)
+        ".talent-field input"                 (direct input selector)
+    allowed_pattern: "^[\\w\\s\\.\\-\\#\\[\\]=:\\/\\(\\)\\&,\\^\\*\\+\\'\\\"]+$"
+
+  - name: search_text
+    description: >
+      Text to type into the autocomplete input to trigger the search.
+      Should be enough characters to produce a focused result set (typically
+      3+ characters). Fewer characters return too many suggestions; more
+      characters may return no results if the search is an exact-prefix match.
+      Example: "John" (searches for voice talents starting with "John")
+    allowed_pattern: "^[\\w\\s\\.\\-\\']+$"
+
+  - name: option_text
+    description: >
+      Exact visible text of the autocomplete suggestion to click. Must match
+      the label rendered in the overlay panel — typically a full name or title.
+      Example: "John Smith" (exact match for the suggestion list item)
+    allowed_pattern: "^[\\w\\s\\.\\-\\(\\)\\&,\\']+$"
+
+steps:
+  # Sub-step 1: Click the input to focus it before typing.
+  # p-autocomplete inputs may not receive fill() without a prior focus click
+  # in some Angular versions. The OR-chain targets both the component input
+  # directly and via the .p-autocomplete-input class.
+  - action: click
+    strategy: css_selector
+    selector: "$combobox_selector input, $combobox_selector .p-autocomplete-input"
+    wait_after_ms: 200
+
+  # Sub-step 2: Type the search text. fill() replaces any existing value.
+  # wait_after_ms: 500 covers the p-autocomplete debounce (default 300ms) plus
+  # the initial API call latency. The overlay is NOT yet expected to be visible.
+  - action: fill
+    strategy: css_selector
+    selector: "$combobox_selector input, $combobox_selector .p-autocomplete-input"
+    value: $search_text
+    wait_after_ms: 500
+
+  # Sub-step 3: Wait for the overlay panel to fully render.
+  # After the debounce fires, Angular calls completeMethod, the service returns
+  # results, and PrimeNG renders the suggestion list. 800ms covers slow networks
+  # and Angular's two-pass change detection cycle.
+  - action: wait
+    wait_after_ms: 800
+
+  # Sub-step 4: Click the matching suggestion by its visible text.
+  # get_by_text finds the first DOM element whose text content matches option_text.
+  # The overlay panel is appended to <body> so it is always in scope.
+  - action: click
+    strategy: get_by_text
+    name: $option_text
+    wait_after_ms: 300
+
+  # Sub-step 5: Wait for the autocomplete input to update with the selected value
+  # and for the overlay close animation to complete.
+  - action: wait
+    wait_after_ms: 200
+
+# ── Verification ──────────────────────────────────────────────────────────
+# Verify completion by checking for a structural DOM change (overlay closed
+# and input value updated).
+verify_after:
+  type: element_hidden
+  selector: "p-autocomplete-panel, .p-autocomplete-items"
+
+cleanup_on_failure:
+  # Step 1: Escape closes the p-autocomplete suggestion overlay.
+  - action: press_key
+    key: Escape
+    wait_after_ms: 200
+  # Step 2: Clear the input so the next attempt starts from a clean state.
+  # fill("") is equivalent to clearing the field — prevents stale search text
+  # from influencing the next autocomplete query.
+  - action: fill
+    strategy: css_selector
+    selector: "$combobox_selector input, $combobox_selector .p-autocomplete-input"
+    value: ""
+    wait_after_ms: 200

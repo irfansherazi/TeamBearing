@@ -1,0 +1,32 @@
+{
+  "_comment": "Validation tsconfig for generated Playwright specs. Used by validator_node.py. The validator dynamically writes the 'files' array per spec before running tsc. Do not hand-edit 'files'.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "ignoreDeprecations": "6.0",
+    "types": [
+      "node"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@fixtures/*": [
+        "fixtures/*"
+      ],
+      "@utils/*": [
+        "utils/*"
+      ]
+    }
+  },
+  "files": [
+    "tests/generated/QA-197.spec.ts",
+    "utils/generated/vpromedia_selectors.ts"
+  ]
+}

@@ -1,0 +1,125 @@
+# T3-c Reflex Layer Catalog — FEAT-118-vqa-tier3-architectural-hardening
+#
+# Each signature entry declares:
+#   - name: unique identifier (used in telemetry and tests)
+#   - description: human-readable summary
+#   - error_patterns (optional): list of regex patterns matched against error_msg
+#   - state_patterns.snapshot_contains (optional): substrings matched in page_state_snapshot
+#   - state_check (optional): structured check against state fields
+#   - recovery: action_type + params describing the deterministic recovery action
+#
+# Ordering matters: first match wins. Place more specific patterns before broader ones.
+
+signatures:
+  # ── 1. strict_mode_0_visible ───────────────────────────────────────────────
+  # Strict mode failure where zero elements were found (vs. multiple elements).
+  # recovery_router handles multi-element strict mode; reflex handles 0-visible.
+  - name: strict_mode_0_visible
+    description: >-
+      Strict mode failure with zero visible elements. Playwright found no matching
+      elements. Recovery: check parent containers or broaden locator scope.
+    error_patterns:
+      - "0 visible"
+      - "0 elements? (matching|found)"
+      - "strict mode.*0"
+    recovery:
+      action_type: check_parents
+      params:
+        critique: >-
+          REFLEX: strict_mode_0_visible — zero elements matched the locator.
+          Try broadening the locator scope or checking parent containers.
+          Retry with a less specific selector.
+
+  # ── 2. native_select_detected ──────────────────────────────────────────────
+  # Playwright reports that a native <select> element was found;
+  # the correct approach is to use select_option instead of click.
+  - name: native_select_detected
+    description: >-
+      Native HTML <select> element detected. Use select_option() instead of click.
+    error_patterns:
+      - "select_option"
+      - "use locator\\.select_option"
+      - "<select>"
+      - "SelectElement"
+    recovery:
+      action_type: switch_to_select_option
+      params:
+        critique: >-
+          REFLEX: native_select_detected — a native <select> element requires
+          select_option() not click(). Switching strategy to select_option.
+
+  # ── 3. spinner_present ─────────────────────────────────────────────────────
+  # A loading spinner is present in the page snapshot — wait before retrying.
+  # Distinct from recovery_router's TIMEOUT (which is for element-not-found timeouts).
+  - name: spinner_present
+    description: >-
+      Loading spinner present in page snapshot. Wait 500ms for the spinner to
+      clear before retrying the action.
+    state_patterns:
+      snapshot_contains:
+        - "p-progress-spinner"
+        - "aria-label.*[Ll]oading"
+        - "[Ll]oading.*spinner"
+        - "progressbar"
+    recovery:
+      action_type: wait
+      params:
+        value: 500
+        critique: >-
+          REFLEX: spinner_present — a loading spinner was detected in the page.
+          Waiting 500ms for the spinner to clear before retrying.
+
+  # ── 4. aria_expanded_false ─────────────────────────────────────────────────
+  # A collapsed element (aria-expanded="false") is blocking interaction.
+  # Recovery: click the trigger to expand it before retrying.
+  - name: aria_expanded_false
+    description: >-
+      Collapsed element detected (aria-expanded="false"). Click the trigger
+      to expand it before retrying the intended action.
+    state_patterns:
+      snapshot_contains:
+        - 'aria-expanded="false"'
+        - "aria-expanded='false'"
+    recovery:
+      action_type: click_trigger
+      params:
+        critique: >-
+          REFLEX: aria_expanded_false — target element is inside a collapsed container
+          (aria-expanded=false). Clicking the trigger to expand it first.
+
+  # ── 5. portal_not_open ─────────────────────────────────────────────────────
+  # A portal overlay (PrimeNG/Material dropdown panel) is not open.
+  # Recovery: dismiss any blocking overlay then retry the intended action.
+  - name: portal_not_open
+    description: >-
+      Portal overlay is not open or is hidden behind another panel.
+      Dismiss any active overlay and retry.
+    error_patterns:
+      - "portal.*not.*visible"
+      - "overlay.*not.*open"
+      - "p-overlay.*hidden"
+      - "panel.*not.*attached"
+    recovery:
+      action_type: dismiss_and_retry
+      params:
+        critique: >-
+          REFLEX: portal_not_open — a portal overlay was not open. Dismissing
+          any active overlay (Escape) and retrying the original action.
+
+  # ── 6. action_repeat_loop ──────────────────────────────────────────────────
+  # The same action has been repeated >= 3 times without progress.
+  # Recovery: escalate to HITL — further reflex/recovery attempts are futile.
+  - name: action_repeat_loop
+    description: >-
+      The same action has been repeated >= 3 times. Further automated retries
+      are futile. Escalate to human-in-the-loop takeover.
+    state_check:
+      type: action_repeat_threshold
+      threshold: 3
+    recovery:
+      action_type: escalate_to_hitl
+      params:
+        critique: >-
+          REFLEX: action_repeat_loop — the same action has been attempted 3+
+          times without progress. Escalating to HITL; further automated retries
+          will not resolve this state.

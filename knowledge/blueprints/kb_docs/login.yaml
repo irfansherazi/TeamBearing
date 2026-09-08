@@ -1,0 +1,48 @@
+# vQA Workflow Blueprint: Login
+# Source: qa-138_basics.test.ts + tests/support/sessionHelpers.ts
+# Last verified: 2026-04-10
+
+name: Login
+description: |
+  Standard login flow for vSuite. Uses name-based selectors from
+  sessionHelpers.ts (most robust) with getByRole fallback.
+  After login, clicks the vProMedia product selector if visible.
+
+steps:
+  - action: fill
+    selector: "input[name='username']"
+    value: "{email}"
+    fallback:
+      - strategy: get_by_role
+        role: textbox
+        name: Email
+      - strategy: get_by_placeholder
+        name: Email
+
+  - action: fill
+    selector: "input[name='password']"
+    value: "{password}"
+    fallback:
+      - strategy: get_by_role
+        role: textbox
+        name: Password
+      - strategy: get_by_placeholder
+        name: Password
+
+  - action: click
+    strategy: get_by_role
+    role: button
+    name: "Login"
+    fallback:
+      - selector: "button:has-text('Login')"
+      - strategy: press_key
+        value: Enter
+
+  - action: wait_for
+    condition: "localStorage.vc2JWT != null"
+    timeout: 30000
+    notes: "JWT appears asynchronously after networkidle"
+
+  - action: click_if_visible
+    selector: "#vpro-media-product-selector-btn"
+    notes: "Product selector may or may not appear depending on user config"

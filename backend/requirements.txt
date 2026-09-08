@@ -1,0 +1,93 @@
+# ──────────────────────────────────────────────────────────────────
+# vQA — Python Dependencies
+# ──────────────────────────────────────────────────────────────────
+#
+# Install:  pip install -r requirements.txt
+# Update:   pip install --upgrade -r requirements.txt
+#
+# Dependencies are grouped by purpose with inline comments explaining
+# why each package is needed.  Pin to major.minor to balance stability
+# with security patches.
+# ──────────────────────────────────────────────────────────────────
+
+# ── FastAPI + Async Server ────────────────────────────────────────
+# FastAPI: async REST + WebSocket framework with auto OpenAPI docs
+fastapi>=0.115.0,<1.0.0
+# Uvicorn: ASGI server that runs FastAPI
+uvicorn[standard]>=0.30.0,<1.0.0
+# sse-starlette: Server-Sent Events support for real-time log streaming
+sse-starlette>=2.0.0,<3.0.0
+
+# ── Authentication ────────────────────────────────────────────────
+# PyJWT: JWT validation for RS256 SSO
+PyJWT[crypto]>=2.9.0,<3.0.0
+
+# ── Pydantic (Settings + Validation) ─────────────────────────────
+
+# Pydantic v2: data validation, serialisation, settings management
+pydantic>=2.7.0,<3.0.0
+# Pydantic Settings: loads config from .env files and env vars
+pydantic-settings>=2.3.0,<3.0.0
+
+# ── HTTP Client ───────────────────────────────────────────────────
+# httpx: async HTTP client for Jira REST API calls
+# Preferred over requests for native async support with FastAPI
+httpx>=0.27.0,<1.0.0
+
+# ── LangGraph + LangChain ────────────────────────────────────────
+# LangGraph: stateful agent orchestration with conditional edges
+langgraph>=0.2.0,<1.0.0
+# LangChain core: base abstractions (messages, callbacks, etc.)
+langchain-core>=0.3.0,<1.0.0
+# LangChain AWS: ChatBedrockConverse for Claude 3.5 Sonnet via Bedrock
+langchain-aws>=0.2.0,<1.0.0
+
+# ── Instructor (FEAT-114: AC Parser Quality) ──────────────────────
+# instructor: Structured JSON extraction with automatic Pydantic validation.
+# Used by Stage 2 of the AC parser (_stage_2_compile) to replace the
+# LangChain ainvoke + json.loads + _repair_json retry loop with a single
+# deterministic boto3 call that validates directly against TestPlan schema.
+instructor>=1.3.0,<2.0.0
+
+# ── AWS SDK ───────────────────────────────────────────────────────
+# boto3: AWS S3 uploads, Bedrock KB retrieval, and service calls
+boto3>=1.34.0,<2.0.0
+
+# ── Browser Automation ───────────────────────────────────────────
+# Playwright: Chromium automation with auto-waiting locators and
+# built-in video recording (record_video_dir)
+playwright>=1.49.0,<2.0.0
+
+# ── ML / Text Processing ──────────────────────────────────────
+# scikit-learn: TF-IDF vectorization + cosine similarity for KB retrieval
+# Used by backend/kb/loader.py to score workflow relevance
+scikit-learn>=1.4.0,<2.0.0
+# numpy: numerical arrays (transitive dep of scikit-learn, pinned for stability)
+numpy>=1.26.0,<3.0.0
+# rank-bm25: BM25 Okapi re-ranking for KB retrieval (FEAT-006)
+# Used alongside TF-IDF to improve long-tail recall on short queries
+rank-bm25>=0.2.2,<1.0.0
+
+# ── Utilities ─────────────────────────────────────────────────────
+# python-dotenv: .env file loading (fallback for non-Pydantic contexts)
+python-dotenv>=1.0.0,<2.0.0
+# Jinja2: HTML template rendering for the audit report generator
+Jinja2>=3.1.0,<4.0.0
+
+# ── ChromaDB (local persistent vector store) ──────────────────────
+# Used by rag_debugger.py (direct calls — LlamaIndex removed by T1-c) and
+# backend/kb/rag.py for the HumanGuidanceVault and TestPlanVault.
+# Previously this was a transitive dep via llama-index-vector-stores-chroma;
+# it is now a direct dependency so it doesn't disappear when LlamaIndex is
+# absent.
+chromadb>=0.5.0,<1.0.0
+
+# ── Browser-Use (backend/engine/web_surfer.py) ────────────────────
+# High-level browser automation agent built on Playwright.
+# Wraps native element perception + LLM-driven action dispatch.
+# Uses ChatBedrockConverse (Claude 3.5 Sonnet) as the planning LLM.
+browser-use>=0.1.40,<1.0.0
+
+# ── Development / Linting ─────────────────────────────────────────
+# ruff: extremely fast Python linter and formatter, replacing flake8
+ruff>=0.4.0,<1.0.0

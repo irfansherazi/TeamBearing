@@ -1,0 +1,159 @@
+; ──────────────────────────────────────────────────────────────────
+; vQA — Supervisord Configuration Template
+; ──────────────────────────────────────────────────────────────────
+;
+; This file is a TEMPLATE rendered by docker/entrypoint.sh at container
+; start from the MAX_CONCURRENT_SESSIONS environment variable.
+;
+; The entrypoint replaces {{MAX_CONCURRENT_SESSIONS}} and expands
+; the {{SESSION_SLOT_PROGRAMS}} block (one triplet per slot) before
+; writing the result to /etc/supervisor/conf.d/vqa.conf.
+;
+; Per-user-session-isolation architecture (ADR-2, ADR-15):
+;   - Each slot N declares [program:xvfb_N], [program:x11vnc_N],
+;     [program:websockify_N] with autostart=false.
+;   - DisplayAllocator.acquire() calls `supervisorctl start xvfb_N
+;     x11vnc_N websockify_N` on demand.
+;   - DisplayAllocator.release() calls `supervisorctl stop xvfb_N
+;     x11vnc_N websockify_N`.
+;   - No config reload is ever needed — all slots are pre-declared.
+;
+; Legacy singleton path (SESSION_ISOLATION_ENABLED=false):
+;   The original [program:xvfb]/[program:x11vnc]/[program:websockify]
+;   blocks (slot :99) remain in the generated config under the
+;   {{LEGACY_SINGLETON_PROGRAMS}} section for Stage 1 rollout compat.
+; ──────────────────────────────────────────────────────────────────
+
+[supervisord]
+nodaemon=true
+logfile=/dev/stdout
+logfile_maxbytes=0
+loglevel=info
+pidfile=/tmp/supervisord.pid
+
+; ──────────────────────────────────────────────────────────────────
+; Legacy singleton (SESSION_ISOLATION_ENABLED=false compat)
+; Always present so Stage 1 rollout can revert via env-var flip.
+; DISPLAY=:99 is the pre-refactor singleton display.
+; ──────────────────────────────────────────────────────────────────
+
+[program:xvfb]
+command=/usr/bin/Xvfb :99 -screen 0 1920x1080x24 +extension GLX
+priority=10
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+startsecs=3
+
+[program:x11vnc]
+command=/usr/bin/x11vnc -display :99 -nopw -forever -shared -rfbport 5900
+priority=20
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+startsecs=2
+environment=DISPLAY=":99"
+
+[program:websockify]
+command=/usr/bin/websockify --web=/usr/share/novnc/ 6080 localhost:5900
+priority=30
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+startsecs=2
+
+; ──────────────────────────────────────────────────────────────────
+; Per-session display slots (SESSION_ISOLATION_ENABLED=true path)
+; Slots 1..MAX_CONCURRENT_SESSIONS are pre-declared with autostart=false.
+; DisplayAllocator starts/stops these via supervisorctl on demand.
+;
+; Port formula:
+;   Xvfb display : N
+;   x11vnc rfbport : 5900 + N
+;   websockify port : 6080 + N   (e.g. slot 1 → port 6081)
+; ──────────────────────────────────────────────────────────────────
+;
+; The entrypoint.sh expands this block for N=1..MAX_CONCURRENT_SESSIONS.
+; Below is an example for N=1 (repeated for each slot by the entrypoint).
+;
+; [program:xvfb_1]
+; command=/usr/bin/Xvfb :1 -screen 0 1920x1080x24 +extension GLX
+; priority=100
+; autostart=false
+; autorestart=false
+; stdout_logfile=/dev/stdout
+; stdout_logfile_maxbytes=0
+; stderr_logfile=/dev/stderr
+; stderr_logfile_maxbytes=0
+; startsecs=2
+;
+; [program:x11vnc_1]
+; command=/usr/bin/x11vnc -display :1 -nopw -forever -shared -rfbport 5901
+; priority=101
+; autostart=false
+; autorestart=false
+; stdout_logfile=/dev/stdout
+; stdout_logfile_maxbytes=0
+; stderr_logfile=/dev/stderr
+; stderr_logfile_maxbytes=0
+; startsecs=2
+; environment=DISPLAY=":1"
+;
+; [program:websockify_1]
+; command=/usr/bin/websockify --web=/usr/share/novnc/ 6081 localhost:5901
+; priority=102
+; autostart=false
+; autorestart=false
+; stdout_logfile=/dev/stdout
+; stdout_logfile_maxbytes=0
+; stderr_logfile=/dev/stderr
+; stderr_logfile_maxbytes=0
+; startsecs=2
+;
+; {{SESSION_SLOT_PROGRAMS}}
+
+; ──────────────────────────────────────────────────────────────────
+; nginx sidecar (session multiplexer)
+; Reads /var/run/vqa/sessions.map (written by backend/session/nginx_map.py).
+; Routes /vnc/<session_id>/* and /websockify/<session_id> to the right port.
+; ──────────────────────────────────────────────────────────────────
+
+[program:nginx]
+command=/usr/sbin/nginx -g "daemon off;" -c /etc/nginx/vqa-session.conf
+priority=35
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+startsecs=2
+
+; ──────────────────────────────────────────────────────────────────
+; uvicorn — FastAPI backend
+; IMPORTANT: --workers 1 is a hard invariant (Playwright is not fork-safe).
+; ──────────────────────────────────────────────────────────────────
+
+[program:uvicorn]
+command=/usr/local/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --log-level info
+directory=/app
+priority=40
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+startsecs=5
+stopsignal=TERM
+stopwaitsecs=15
+environment=PYTHONPATH="/app"

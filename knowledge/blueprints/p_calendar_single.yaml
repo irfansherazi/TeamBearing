@@ -1,0 +1,145 @@
+# knowledge/blueprints/p_calendar_single.yaml
+#
+# Recipe: p_calendar_single
+#
+# Handles PrimeNG p-calendar in single-date selection mode as used in the
+# vSuite Quick Order due date, voice request due date, and OOO date pickers.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# WHY THIS RECIPE EXISTS
+# ────────────────────────────────────────────────────────────────────────────────
+# Date pickers are the highest-difficulty component for LLM agents because they
+# involve complex nested grids, next/prev month buttons, and specific string
+# formatting. This recipe bypasses the calendar grid entirely by typing the
+# date directly into the input field — the most deterministic approach.
+#
+# The p-calendar in single mode accepts typed dates in MM/DD/YYYY format.
+# Typing is faster and more reliable than navigating the calendar grid
+# month-by-month to find a specific date.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# DIFFERENCE FROM p_calendar_range
+# ────────────────────────────────────────────────────────────────────────────────
+#
+#   p_calendar_range:  Two dates, Tab between them, range selection mode
+#   p_calendar_single: One date, Enter to commit, single selection mode
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# DOM STRUCTURE (from PrimeNG p-calendar / p-datepicker)
+# ────────────────────────────────────────────────────────────────────────────────
+#
+# PrimeNG v17 (p-calendar):
+#   <p-calendar [showIcon]="true" formControlName="dueDate">
+#     <input class="p-inputtext p-calendar-input" />
+#     <button class="p-datepicker-trigger"><span class="pi pi-calendar"></span></button>
+#   </p-calendar>
+#
+# PrimeNG v19 (p-datepicker):
+#   <p-datepicker [showIcon]="true" formControlName="dueDate">
+#     <input class="p-inputtext" />
+#     <button class="p-datepicker-dropdown"><span class="pi pi-calendar"></span></button>
+#   </p-datepicker>
+#
+# This recipe uses OR-chain selectors to support both versions.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# DATE FORMAT RULES
+# ────────────────────────────────────────────────────────────────────────────────
+#
+#   date MUST be in MM/DD/YYYY format.
+#   Examples: "04/01/2026", "12/31/2025"
+#   The allowed_pattern enforces this format to prevent Playwright fill errors.
+#
+
+name: p_calendar_single
+description: >
+  PrimeNG p-calendar in single-date selection mode — types the date directly
+  into the calendar input field. Faster and more deterministic than clicking
+  through the calendar grid. Supports both p-calendar (v17) and p-datepicker (v19).
+
+trigger_keywords:
+  # Date input keywords
+  - "due date"
+  - "select date"
+  - "pick date"
+  - "enter date"
+  - "set date"
+  - "calendar"
+  - "date picker"
+  - "datepicker"
+  - "p-calendar"
+  - "p-datepicker"
+  - "scheduled date"
+  - "deadline"
+  - "start date"
+  - "end date"
+  # Exclude range-specific keywords to avoid conflict with p_calendar_range
+  # The recipe_runner prioritizes more specific matches, so p_calendar_range
+  # will match if "date range" or "from date" / "to date" is present.
+
+parameters:
+  - name: container_selector
+    description: >
+      CSS selector for the p-calendar/p-datepicker component or its parent.
+      Used to scope the interaction to the correct date field on the page.
+      Examples:
+        "p-calendar"                                 (single calendar)
+        "p-datepicker"                               (v19 component)
+        "[formControlName='dueDate']"                (by Angular control)
+        ".voice-form p-calendar"                     (scoped by parent)
+    allowed_pattern: "^[\\w\\s\\.\\-\\#\\[\\]=:\\/\\(\\)\\&,\\^\\*\\+]+$"
+
+  - name: date
+    description: >
+      The date to enter in MM/DD/YYYY format.
+      Example: "04/15/2026"
+    allowed_pattern: '^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$'
+
+steps:
+  # Sub-step 1: Triple-click the input to select all existing text (if any),
+  # then clear it. This handles pre-populated date fields.
+  - action: click
+    strategy: css_selector
+    selector: >
+      $container_selector input.p-calendar-input,
+      $container_selector input.p-inputtext,
+      $container_selector input[placeholder*="mm/dd"],
+      $container_selector input[placeholder*="MM/DD"]
+    click_count: 3
+    wait_after_ms: 200
+
+  # Sub-step 2: Fill the date value. fill() clears existing text first.
+  - action: fill
+    strategy: css_selector
+    selector: >
+      $container_selector input.p-calendar-input,
+      $container_selector input.p-inputtext,
+      $container_selector input[placeholder*="mm/dd"],
+      $container_selector input[placeholder*="MM/DD"]
+    value: $date
+    wait_after_ms: 300   # Allow Angular CD to register the date
+
+  # Sub-step 3: Press Enter to commit the date and close the overlay.
+  # PrimeNG p-calendar commits on Enter and dispatches (onSelect).
+  - action: press_key
+    key: Enter
+    wait_after_ms: 500   # Wait for Angular form update
+
+  # Sub-step 4: Press Escape to ensure the calendar overlay is closed.
+  # Some p-calendar configurations don't close on Enter alone.
+  - action: press_key
+    key: Escape
+    wait_after_ms: 200
+
+cleanup_on_failure:
+  - action: press_key
+    key: Escape
+    wait_after_ms: 400
+  - action: press_key
+    key: Escape
+    wait_after_ms: 200
+
+# Verify the input now contains the entered date value
+verify_after:
+  type: element_visible
+  selector: "$container_selector input[value*='$date'], $container_selector .p-calendar-input"

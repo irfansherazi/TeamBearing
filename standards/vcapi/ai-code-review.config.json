@@ -1,0 +1,30 @@
+{
+    "app": "vcapi",
+    "mode": "branch",
+    "branch": "",
+    "baseBranch": "develop",
+    "branchNameRules": [
+        { "suffix": "-master", "baseBranch": "master" },
+        { "suffix": "-develop", "baseBranch": "develop" }
+    ],
+    "instructionsFile": "pr-review-checklist.md",
+    "automatedChecks": {
+        "CQ-05": "noConsoleOrDebugger",
+        "CQ-08": "lint",
+        "CQ-10": "misleadingOptionalChaining",
+        "CQ-11": "booleanNullishOr",
+        "CQ-13": "noHardCodedThanksgiving",
+        "CQ-15": "apiDtoMapHygiene",
+        "CQ-16": "noHasOwnProperty",
+        "CQ-17": "noEslintDisable",
+        "CQ-20": "elseBraceSameLine"
+    },
+    "advisoryAutomatedIds": ["CQ-10"],
+    "sourceOfTruthDocs": [
+        "AGENTS.md"
+    ],
+    "aiReviewCommand": "node scripts/ai-review/run-claude-review.js",
+    "aiReviewTimeoutMs": 300000,
+    "maxDiffLines": 8000,
+    "outputDir": ".ai-review"
+}

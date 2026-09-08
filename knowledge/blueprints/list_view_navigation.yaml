@@ -1,0 +1,113 @@
+# knowledge/blueprints/list_view_navigation.yaml
+#
+# Recipe: list_view_navigation
+#
+# Navigates to List View (or any view type) in the Production Orders
+# table using the settings button (button#settings-btn).
+#
+# CREATED: TASK-015 Phase 3 (Bug 2 — Missing List View Navigation Recipe)
+#
+# BACKGROUND:
+#   The planner was falling into an infinite loop trying to navigate to
+#   List View because no navigation recipe existed for this transition.
+#   The ARIA tree shows a radio button group for view switching but the
+#   planner didn't recognize the pattern without KB support.
+#
+# This recipe is functionally identical to compact_view_navigate.yaml
+# but with distinct trigger_keywords that match "list view" / "grid view"
+# queries. Both recipes use the same underlying mechanism:
+#   1. Click button#settings-btn (the view type switcher)
+#   2. Click the desired view label in the popup menu
+#   3. Verify via div.po-table-wrapper.$view_css_class
+#
+# CRITICAL DISTINCTION:
+#   button#settings-btn  → View Type switcher (List/Compact/Minimal). Use this.
+#   button#sort-btn      → Sort popover inside Compact View. Different button.
+#
+# HOW ACTIVE VIEW IS DETECTED (from productionorders.html line 148):
+#   <div class="po-table-wrapper {{ selectedTableView | lowercase }}">
+#
+#   Angular applies the current view as a lowercase CSS class:
+#     Modern (List view)  →  div.po-table-wrapper.modern
+#     Compact             →  div.po-table-wrapper.compact
+#     Minimal             →  div.po-table-wrapper.minimal
+#
+# NO-OP BEHAVIOR (AC-HAPPY-6):
+#   If the target view is ALREADY active, the verify_after check passes
+#   immediately (div.po-table-wrapper.$view_css_class already exists).
+#   The recipe runner's idempotency pre-check will detect this and skip
+#   execution entirely — no unnecessary clicks.
+
+name: list_view_navigation
+description: >
+  Switches to List View (or any view type) using the settings button
+  (button#settings-btn → click view label). Designed to prevent planner
+  infinite loops when navigating to List View. Uses the CORRECT
+  view-switcher button, NOT the sort button.
+  Verifies via div.po-table-wrapper.{view_css_class} persistent DOM indicator.
+
+trigger_keywords:
+  - list
+  - "list view"
+  - listview
+  - "list view navigation"
+  - "navigate to list"
+  - "switch to list"
+  - "grid view"
+  - modern
+  - "modern view"
+  - view type
+  - view switch
+  - settings-btn
+
+parameters:
+  - name: view_label
+    description: >
+      Visible label of the view to switch to, as it appears in the settings menu.
+      Examples: "List", "Compact", "Minimal"
+    allowed_pattern: '^(Compact|List|Minimal)$'
+
+  - name: view_css_class
+    description: >
+      Lowercase CSS class that Angular applies to div.po-table-wrapper when this
+      view is active. Derived from selectedTableView | lowercase in the template.
+      Values:
+        List view (Modern)  →  "modern"
+        Compact             →  "compact"
+        Minimal             →  "minimal"
+    allowed_pattern: '^(modern|compact|minimal)$'
+
+steps:
+  # Sub-step 1: Open the view-type settings menu.
+  # button#settings-btn is the VIEW SWITCHER — not the sort button.
+  - action: click
+    strategy: css_selector
+    name: button#settings-btn
+    wait_after_ms: 600   # Wait for p-menu popup to open and render
+
+  # Sub-step 2: Click the desired view label in the menu.
+  - action: click
+    strategy: get_by_text
+    name: $view_label
+    wait_after_ms: 1500  # Angular view transition takes ~500-1000ms to apply CSS class
+
+cleanup_on_failure:
+  # If the menu opened but the click failed, dismiss with Escape.
+  - action: press_key
+    key: Escape
+    wait_after_ms: 300
+
+# PERSISTENT DOM VERIFICATION:
+# Uses $view_css_class (auto-derived from view_label by fill_recipe) so the
+# selector is always correct for the target view:
+#   List    → div.po-table-wrapper.modern
+#   Compact → div.po-table-wrapper.compact
+#   Minimal → div.po-table-wrapper.minimal
+#
+# This also provides the NO-OP behavior (AC-HAPPY-6):
+# If the target view is already active, the selector is already present
+# in the DOM, so the idempotency pre-check passes immediately.
+verify_after:
+  type: element_visible
+  selector: "div.po-table-wrapper.$view_css_class"
+  timeout_ms: 10000

@@ -1,0 +1,20 @@
+{
+  "Choose Ad Type": [
+    "Digital",
+    "Radio",
+    "Video"
+  ],
+  "Hardcoded": [
+    "Option A",
+    "Option B"
+  ],
+  "Select Services": [
+    "Mixing",
+    "Voiceover"
+  ],
+  "Select a Status": [
+    "Archived",
+    "Draft",
+    "Published"
+  ]
+}

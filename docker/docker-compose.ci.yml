@@ -1,0 +1,132 @@
+# ──────────────────────────────────────────────────────────────────
+# vQA — Docker Compose (Headless / CI/CD Mode)
+# ──────────────────────────────────────────────────────────────────
+#
+# Usage:
+#   docker compose -f docker/docker-compose.ci.yml up --build
+#
+# This starts vQA in headless mode:
+#   - NO Xvfb, x11vnc, or noVNC (no virtual display)
+#   - Playwright runs with headless=True
+#   - Port 8000 only: FastAPI backend
+#
+# Designed for CI/CD pipeline gating:
+#   1. Pipeline calls POST /execute-batch with a list of tickets
+#   2. Polls GET /batch-status/{batch_id} until all runs complete
+#   3. Pipeline gate: exit 0 if all passed, exit 1 if any failed
+#
+# Example Jenkins/GitHub Actions usage:
+#   docker compose -f docker/docker-compose.ci.yml up -d
+#   BATCH_ID=$(curl -s -X POST http://localhost:8000/execute-batch \
+#     -H 'Content-Type: application/json' \
+#     -d '{"tickets": [{"jira_ticket_id": "VC2-8967", "role": "account_executive"}]}' \
+#     | jq -r '.batch_id')
+#   # Poll until done (see CI scripts in DEPLOYMENT.md)
+# ──────────────────────────────────────────────────────────────────
+
+services:
+  vqa-backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+
+    container_name: vqa-ci
+
+    # ── Override entrypoint ───────────────────────────────────────
+    # Skip supervisord — run uvicorn directly (no Xvfb/VNC needed)
+    command: >
+      uvicorn backend.main:app
+      --host 0.0.0.0
+      --port 8000
+      --workers 1
+      --log-level info
+
+    ports:
+      # Only the API port — no noVNC in CI mode
+      - "${API_PORT:-8000}:8000"
+
+    environment:
+      # ── Force headless mode ────────────────────────────────────
+      - VQA_MODE=headless
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+
+      # ── Jira credentials ───────────────────────────────────────
+      - JIRA_EMAIL=${JIRA_EMAIL}
+      - JIRA_API_TOKEN=${JIRA_API_TOKEN}
+      - JIRA_DOMAIN=${JIRA_DOMAIN}
+
+      # ── AWS credentials ────────────────────────────────────────
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_BEDROCK_REGION=${AWS_BEDROCK_REGION:-us-west-2}
+
+      # ── LLM / Bedrock ──────────────────────────────────────────
+      - LLM_PROVIDER=bedrock
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-anthropic.claude-3-5-sonnet-20241022-v2:0}
+      - BEDROCK_ROLES_KB_ID=${BEDROCK_ROLES_KB_ID:-JXMMTMTI06}
+
+      # ── S3 storage ─────────────────────────────────────────────
+      - S3_BUCKET=${S3_BUCKET:-vcreative-deployments}
+      - S3_PREFIX=${S3_PREFIX:-vSuitePlatform/Buildartif/vqa-results}
+
+      # ── Role credentials (optional fallback — KB is primary) ────
+      - ROLE_DEFAULT_PASSWORD=${ROLE_DEFAULT_PASSWORD:-}
+
+      # ── Application settings ───────────────────────────────────────
+      - TARGET_URL=${TARGET_URL:-https://two-test.vcreative.net}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - MAX_PLANNER_ITERATIONS=${MAX_PLANNER_ITERATIONS:-50}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # ── Parallel execution ───────────────────────────────────────
+      # VQA_SUITE_WORKERS: max simultaneous Playwright subprocess workers.
+      # Formula: floor(memory_limit_gb / 0.6). With 4g limit → 6, but
+      # capped at 4 to leave headroom for the FastAPI process and asyncio.
+      # Override per-deployment: -e VQA_SUITE_WORKERS=N
+      - VQA_SUITE_WORKERS=${VQA_SUITE_WORKERS:-4}
+      # VQA_HEADLESS=1: required for parallel runs — headed mode shares a
+      # single Xvfb display (:99) and is NOT safe for concurrent execution.
+      - VQA_HEADLESS=1
+
+    # ── Resource limits ──────────────────────────────────────────
+    # Each headless Chromium worker needs ~600 MB RAM + ~0.5 CPU.
+    # 4 workers → ~2.4 GB + ~300 MB for the FastAPI/asyncio process.
+    # Scale memory/cpus and VQA_SUITE_WORKERS together.
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: "2.0"
+        reservations:
+          memory: 2g
+          cpus: "1.0"
+
+    # /dev/shm for Chromium GPU memory (avoids tab crashes under load).
+    # NOTE: Fargate ignores this setting — set linuxParameters.sharedMemorySize
+    # in the ECS task definition instead (value in MiB, e.g. 1024).
+    shm_size: "1gb"
+
+    # tmpfs for /tmp — prevents I/O contention from parallel trace/screenshot
+    # writes competing with the overlay filesystem.
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+
+    # Raise the open-file limit — 4 parallel Chromium instances each open
+    # ~200 file descriptors; the kernel default of 1024 is exhausted quickly.
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+    # ── No restart in CI — exit on completion ─────────────────────
+    restart: "no"
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      # Reduced from 20s — uvicorn starts in ~5s in headless mode (no Xvfb).
+      start_period: 10s
+      retries: 3

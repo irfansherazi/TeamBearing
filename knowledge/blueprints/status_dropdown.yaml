@@ -1,0 +1,144 @@
+# knowledge/blueprints/status_dropdown.yaml
+#
+# Recipe: status_dropdown
+#
+# Clicks a status badge or trigger button to open a PrimeNG p-select / p-dropdown
+# overlay, waits for the animation to complete, then clicks the target option.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# WHY THIS RECIPE EXISTS
+# ────────────────────────────────────────────────────────────────────────────────
+# PrimeNG overlays (p-select-overlay, p-dropdown-panel) animate in asynchronously
+# after the trigger click — typically 150–250 ms. If the option click arrives
+# before the overlay is fully visible, Playwright throws "element is not visible"
+# or "detached from DOM" errors.
+#
+# This recipe inserts two explicit wait steps:
+#   - 400 ms after the trigger click: covers the open animation
+#   - 300 ms after the option click: covers the close animation
+#
+# These waits prevent the verifier from firing before the overlay closes, which
+# would produce a false NOT_YET verdict on a component that has already updated.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# DOM STRUCTURE (PrimeNG p-select / p-dropdown status badge)
+# ────────────────────────────────────────────────────────────────────────────────
+#
+# A typical vSuite status column renders as:
+#
+#   <td class="status-col">
+#     <span class="status-badge status-pending" (click)="openStatusMenu($event, row)">
+#       Pending
+#     </span>
+#   </td>
+#
+# After click, PrimeNG appends the overlay to <body>:
+#
+#   <p-select-overlay class="p-select-overlay p-component">
+#     <ul class="p-select-list" role="listbox">
+#       <li class="p-select-option" data-p-value="approved">Approved</li>
+#       <li class="p-select-option" data-p-value="pending">Pending</li>
+#       ...
+#     </ul>
+#   </p-select-overlay>
+#
+# The get_by_text strategy for the option click is overlay-panel scoped by the
+# executor's _resolve_locator, so it finds the option inside the open overlay
+# rather than anywhere else on the page.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# CLEANUP STRATEGY
+# ────────────────────────────────────────────────────────────────────────────────
+# If the option click fails (option not found, wrong text, etc.):
+#   1. Escape — dismisses the PrimeNG overlay panel
+#   2. wait   — allows overlay close animation to complete
+# This leaves the trigger visible and the page stable for retry.
+
+name: status_dropdown
+description: >
+  Clicks a status badge or trigger to open a PrimeNG p-select/p-dropdown overlay,
+  waits for the overlay to fully render, then clicks the target option by its
+  visible label text.
+
+# Hardware-level wait: PrimeNG dropdowns often trigger background API calls or re-renders on selection.
+force_wait_before_next: true
+force_wait_ms: 1200
+
+trigger_keywords:
+  - "status dropdown"
+  - "select status"
+  - "change status"
+  - "status combobox"
+  - "update status"
+  - "status badge"
+  - "set status"
+  - "status menu"
+  - "order status"
+  - "p-dropdown status"
+  - "status overlay"
+
+parameters:
+  - name: trigger_selector
+    description: >
+      CSS selector for the status badge, button, or trigger element that opens
+      the dropdown overlay when clicked.
+      Examples:
+        ".status-badge"                    (any status badge in current context)
+        "td.status-col span.status-badge"  (scoped to a table column)
+        "p-select .p-select-trigger"       (PrimeNG select trigger)
+    allowed_pattern: "^[\\w\\s\\.\\-\\#\\[\\]=:\\/\\(\\)\\&,\\^\\*\\+\\'\\\"]+$"
+
+  - name: option_text
+    description: >
+      Exact visible text of the dropdown option to click. Must match the label
+      text rendered inside the overlay panel.
+      Examples: "Approved", "Pending", "In Progress", "Cancelled"
+    allowed_pattern: "^[\\w\\s\\-\\.\\(\\)\\&,\\']+$"
+
+steps:
+  # Sub-step 1: Click the trigger to open the overlay.
+  # wait_after_ms: 400 covers PrimeNG's overlay open animation (default ~200ms)
+  # plus Angular change detection. Adjust upward for slow environments.
+  - action: click
+    strategy: css_selector
+    selector: $trigger_selector
+    wait_after_ms: 400
+
+  # Sub-step 2: Explicit wait for the overlay to fully render.
+  # PrimeNG appends the panel to <body> asynchronously — this extra wait prevents
+  # "element not found" failures on the option click when the panel is still
+  # mid-animation.
+  - action: wait
+    wait_after_ms: 300
+
+  # Sub-step 3: Click the target option by its visible text.
+  # get_by_text targets the first element whose text content exactly matches
+  # option_text — scoped to the overlay container to avoid false matches
+  # if option_text appears elsewhere on the page.
+  - action: click
+    strategy: get_by_text
+    name: $option_text
+    container_selector: "p-select-overlay, .p-overlay-content"
+    wait_after_ms: 300
+
+  # Sub-step 4: Wait for the overlay close animation to complete.
+  # PrimeNG p-select animates out (~150ms). The verifier fires after this wait,
+  # ensuring the trigger badge has updated its text/class before verification.
+  - action: wait
+    wait_after_ms: 300
+
+# ── Verification ──────────────────────────────────────────────────────────
+# Verify completion by checking for a structural DOM change (overlay closed
+# and trigger badge updated).
+verify_after:
+  type: element_hidden
+  selector: "p-select-overlay, .p-overlay-content"
+
+cleanup_on_failure:
+  # Escape dismisses any open PrimeNG overlay panel.
+  - action: press_key
+    key: Escape
+    wait_after_ms: 200
+  # Extra wait for the close animation to fully complete before planner retries.
+  - action: wait
+    wait_after_ms: 200

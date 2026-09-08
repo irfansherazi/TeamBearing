@@ -1,0 +1,476 @@
+[
+  {
+    "id": "qa-100-script-library.test",
+    "file": "tests/vpromedia/qa-100-script-library.test.ts",
+    "jira_keys": [
+      "NEW-0",
+      "QA-100"
+    ],
+    "description": "QA-100: Script Library",
+    "steps_count": 4,
+    "step_names": [
+      "Phase 1 & 2: Send script to library",
+      "Phase 3: Manage library",
+      "Phase 4: Permission Testing",
+      "Phase 5: Script Timer Integration"
+    ]
+  },
+  {
+    "id": "qa-101-client-merging.test",
+    "file": "tests/vpromedia/qa-101-client-merging.test.ts",
+    "jira_keys": [
+      "QA-101"
+    ],
+    "description": "QA-101: Client Merging",
+    "steps_count": 6,
+    "step_names": [
+      "Ensure ",
+      "Discover existing client, submit order with typo name",
+      "Approve the typo client in Settings > Clients",
+      "Open draft and submit, then confirm in Inbox",
+      "Merge typo client into the correct client",
+      "Verify submitted order now shows the corrected client name"
+    ]
+  },
+  {
+    "id": "qa-125-new-user-experience.test",
+    "file": "tests/vpromedia/qa-125-new-user-experience.test.ts",
+    "jira_keys": [
+      "QA-125"
+    ],
+    "description": "QA-125: New User Experience",
+    "steps_count": 3,
+    "step_names": [
+      "Step 1: Anonymous User Signup",
+      "Step 2: Admin Approval",
+      "Step 3: New User Login & Wizard"
+    ]
+  },
+  {
+    "id": "qa-157-large-order-testing.test",
+    "file": "tests/vpromedia/qa-157-large-order-testing.test.ts",
+    "jira_keys": [
+      "QA-157",
+      "QA-203"
+    ],
+    "description": "QA-157: Top Biller Submits Large Orders",
+    "steps_count": 2,
+    "step_names": [
+      "Step 1 & 2: Submit single, 6-spot, and 10+ spot orders",
+      "Step 3: Verify, Copy, and Revise"
+    ]
+  },
+  {
+    "id": "qa-170-search.test",
+    "file": "tests/vpromedia/qa-170-search.test.ts",
+    "jira_keys": [
+      "QA-170"
+    ],
+    "description": "QA-170: Search Functionality Verification",
+    "steps_count": 1,
+    "step_names": [
+      "Verify Search Filters and Retention"
+    ]
+  },
+  {
+    "id": "qa-172-production.test",
+    "file": "tests/vpromedia/qa-172-production.test.ts",
+    "jira_keys": [
+      "QA-101",
+      "QA-170",
+      "QA-172"
+    ],
+    "description": "QA-172: Compact View - Production Workflow",
+    "steps_count": 1,
+    "step_names": [
+      "Verify Accordion Details, POCs, and Files"
+    ]
+  },
+  {
+    "id": "qa-172-sales.test",
+    "file": "tests/vpromedia/qa-172-sales.test.ts",
+    "jira_keys": [
+      "QA-172"
+    ],
+    "description": "QA-172: Compact View - Sales Workflow",
+    "steps_count": 1,
+    "step_names": [
+      "Verify Quick Order and Bottom Toolbar Actions"
+    ]
+  },
+  {
+    "id": "qa-175-lockout.test",
+    "file": "tests/vpromedia/qa-175-lockout.test.ts",
+    "jira_keys": [
+      "QA-175"
+    ],
+    "description": "QA-175: Spot Lockout Scenarios",
+    "steps_count": 1,
+    "step_names": [
+      "Verify spot lockout during Inline Edit, Quick Order, and POC assignment"
+    ]
+  },
+  {
+    "id": "qa-185-saved-searches-sharing.test",
+    "file": "tests/vpromedia/qa-185-saved-searches-sharing.test.ts",
+    "jira_keys": [
+      "QA-185",
+      "QA-298"
+    ],
+    "description": "QA-185: Saved Search Sharing",
+    "steps_count": 3,
+    "step_names": [
+      "Step 1: Create and Share Folder",
+      "Step 2: Verify and Hide Folder",
+      "Step 3: Verify Persistence and Cleanup"
+    ]
+  },
+  {
+    "id": "qa-192-recorded.test",
+    "file": "tests/vpromedia/qa-192-recorded.test.ts",
+    "jira_keys": [
+      "QA-192"
+    ],
+    "description": "",
+    "steps_count": 0,
+    "step_names": []
+  },
+  {
+    "id": "qa-196-Files.test",
+    "file": "tests/vpromedia/qa-196-Files.test.ts",
+    "jira_keys": [
+      "QA-196"
+    ],
+    "description": "QA-196: Files Orchestration - Master Serial Suite",
+    "steps_count": 7,
+    "step_names": [
+      "Step 1: Remove client files (Pre-Wash)",
+      "Step 2: Add client files (Upload)",
+      "Step 3: Validate client files (Audio)",
+      "Step 4: Submit a Production Order with files",
+      "Step 5: List View file actions",
+      "Step 6: Slideout Panel file actions",
+      "Step 7: Confirm history log validation"
+    ]
+  },
+  {
+    "id": "qa-196-step1-prewash.test",
+    "file": "tests/vpromedia/qa-196-components/qa-196-step1-prewash.test.ts",
+    "jira_keys": [
+      "QA-196"
+    ],
+    "description": "QA-196 Component: Step 1 - Pre-Wash",
+    "steps_count": 1,
+    "step_names": [
+      "Remove client files (Pre-Wash)"
+    ]
+  },
+  {
+    "id": "qa-196-step2-upload.test",
+    "file": "tests/vpromedia/qa-196-components/qa-196-step2-upload.test.ts",
+    "jira_keys": [
+      "QA-196"
+    ],
+    "description": "QA-196 Component: Step 2 - Client Upload",
+    "steps_count": 1,
+    "step_names": [
+      "Add client files (Upload)"
+    ]
+  },
+  {
+    "id": "qa-196-step3-audio.test",
+    "file": "tests/vpromedia/qa-196-components/qa-196-step3-audio.test.ts",
+    "jira_keys": [
+      "QA-196"
+    ],
+    "description": "QA-196 Component: Step 3 - Audio Validation",
+    "steps_count": 1,
+    "step_names": [
+      "Validate client files (Audio)"
+    ]
+  },
+  {
+    "id": "qa-196-step4-qo.test",
+    "file": "tests/vpromedia/qa-196-components/qa-196-step4-qo.test.ts",
+    "jira_keys": [
+      "QA-196"
+    ],
+    "description": "QA-196 Component: Step 4 - QO Interaction",
+    "steps_count": 1,
+    "step_names": [
+      "Submit a Production Order with files"
+    ]
+  },
+  {
+    "id": "qa-196-step5-listview.test",
+    "file": "tests/vpromedia/qa-196-components/qa-196-step5-listview.test.ts",
+    "jira_keys": [
+      "QA-196"
+    ],
+    "description": "QA-196 Component: Step 5 - List View Actions",
+    "steps_count": 1,
+    "step_names": [
+      "List View file actions"
+    ]
+  },
+  {
+    "id": "qa-196-step6-slideout.test",
+    "file": "tests/vpromedia/qa-196-components/qa-196-step6-slideout.test.ts",
+    "jira_keys": [
+      "QA-196"
+    ],
+    "description": "QA-196 Component: Step 6 - Slideout Panel",
+    "steps_count": 1,
+    "step_names": [
+      "Slideout Panel file actions"
+    ]
+  },
+  {
+    "id": "qa-196-step7-history.test",
+    "file": "tests/vpromedia/qa-196-components/qa-196-step7-history.test.ts",
+    "jira_keys": [
+      "QA-196"
+    ],
+    "description": "QA-196 Component: Step 7 - History Validation",
+    "steps_count": 1,
+    "step_names": [
+      "Confirm history log validation"
+    ]
+  },
+  {
+    "id": "qa-197-revision-process.test",
+    "file": "tests/vpromedia/qa-197-revision-process.test.ts",
+    "jira_keys": [
+      "QA-197"
+    ],
+    "description": "QA-197: Revision Process",
+    "steps_count": 1,
+    "step_names": [
+      "Complete End-to-End Revision Process"
+    ]
+  },
+  {
+    "id": "qa-203-datetime-picker-pastdue.test",
+    "file": "tests/vpromedia/qa-203-datetime-picker-pastdue.test.ts",
+    "jira_keys": [
+      "QA-203",
+      "TEST-203",
+      "WITHIN-30"
+    ],
+    "description": "QA-203: DateTime Picker + Past Due",
+    "steps_count": 2,
+    "step_names": [
+      "Create TV Ad order with calendar date + time selection",
+      "Verify past-due color coding via inline edit"
+    ]
+  },
+  {
+    "id": "qa-204-client-approval-upon-submit.test",
+    "file": "tests/vpromedia/qa-204-client-approval-upon-submit.test.ts",
+    "jira_keys": [
+      "QA-204"
+    ],
+    "description": "QA-204: Client Approval Upon Submit",
+    "steps_count": 4,
+    "step_names": [
+      "Ensure ",
+      "Submit order with NEW client triggers approval warning",
+      "Approve new client in Settings > Clients > Waiting Approval",
+      "Verify approval notification received"
+    ]
+  },
+  {
+    "id": "qa-247-job-completion-hover-feature.test",
+    "file": "tests/vpromedia/qa-247-job-completion-hover-feature.test.ts",
+    "jira_keys": [
+      "QA-170",
+      "QA-247"
+    ],
+    "description": "QA-247: Dubbed Checkbox Conditional Rendering",
+    "steps_count": 0,
+    "step_names": []
+  },
+  {
+    "id": "qa-254-manual_archive.test",
+    "file": "tests/vpromedia/qa-254-manual_archive.test.ts",
+    "jira_keys": [
+      "QA-254"
+    ],
+    "description": "QA-254: Manual Archive Regression",
+    "steps_count": 1,
+    "step_names": [
+      "Confirm "
+    ]
+  },
+  {
+    "id": "qa-257-Exporting_spot_info.test",
+    "file": "tests/vpromedia/qa-257-Exporting_spot_info.test.ts",
+    "jira_keys": [
+      "QA-257"
+    ],
+    "description": "qa-257: Export Spot Info",
+    "steps_count": 1,
+    "step_names": [
+      "qa-257: Exporting Spot Info"
+    ]
+  },
+  {
+    "id": "qa-279-send-email.test",
+    "file": "tests/vpromedia/qa-279-send-email.test.ts",
+    "jira_keys": [
+      "QA-279"
+    ],
+    "description": "QA-279: Send Email Function",
+    "steps_count": 1,
+    "step_names": [
+      "Send Email with attached file generates valid file links"
+    ]
+  },
+  {
+    "id": "qa-280-recorded.test",
+    "file": "tests/qa-280-recorded.test.ts",
+    "jira_keys": [
+      "QA-280"
+    ],
+    "description": "QA-280: [Automated] Ensure Failed Login Message",
+    "steps_count": 1,
+    "step_names": [
+      "QA-280: [Automated] Ensure Failed Login Message"
+    ]
+  },
+  {
+    "id": "qa-298-folder-count-equals-visible-spot-count.test",
+    "file": "tests/vpromedia/qa-298-folder-count-equals-visible-spot-count.test.ts",
+    "jira_keys": [
+      "QA-298"
+    ],
+    "description": "QA-298: Parallel Execution (Demo Users)",
+    "steps_count": 1,
+    "step_names": [
+      "Verify Folders and Search"
+    ]
+  },
+  {
+    "id": "qa-321-sorting-list-and-compact.test",
+    "file": "tests/vpromedia/qa-321-sorting-list-and-compact.test.ts",
+    "jira_keys": [
+      "QA-321"
+    ],
+    "description": "QA-321: List and Compact View Sorting",
+    "steps_count": 1,
+    "step_names": [
+      "Execute Sorting End-to-End Workflows"
+    ]
+  },
+  {
+    "id": "qa-359-recorded.test",
+    "file": "tests/qa-359-recorded.test.ts",
+    "jira_keys": [
+      "QA-359"
+    ],
+    "description": "",
+    "steps_count": 0,
+    "step_names": []
+  },
+  {
+    "id": "qa-363-vppo-verify-spec-spots-folder-visibility-op-cu.test",
+    "file": "tests/vppo/qa-363-vppo-verify-spec-spots-folder-visibility-op-cu.test.ts",
+    "jira_keys": [
+      "QA-363"
+    ],
+    "description": "QA-363: QA-363: VPPO: Verify Spec Spots Folder Visibility Options",
+    "steps_count": 1,
+    "step_names": [
+      "QA-363: QA-363: VPPO: Verify Spec Spots Folder Visibility Options"
+    ]
+  },
+  {
+    "id": "qa-46-basic-ad-types.test",
+    "file": "tests/vpromedia/qa-46-basic-ad-types.test.ts",
+    "jira_keys": [
+      "QA-46"
+    ],
+    "description": "QA-46: Basic Ad Types",
+    "steps_count": 4,
+    "step_names": [
+      "Create & submit a Radio Commercial spot",
+      "Create & submit a Commercial+Streaming spot",
+      "Create & submit a Streaming Only spot",
+      "Create & submit an Image Ad (Banner) spot"
+    ]
+  },
+  {
+    "id": "qa-58-59-poc-delegation.test",
+    "file": "tests/vpromedia/qa-58-59-poc-delegation.test.ts",
+    "jira_keys": [
+      "QA-175",
+      "QA-58",
+      "QA-59"
+    ],
+    "description": "QA-58/59: POC Delegation \u2014 Counts & MyBox Visibility",
+    "steps_count": 1,
+    "step_names": [
+      "Assign, replace, and remove POCs with count and MyBox verification"
+    ]
+  },
+  {
+    "id": "vc2-8821-memory-leak.test",
+    "file": "tests/vpromedia/vc2-8821-memory-leak.test.ts",
+    "jira_keys": [
+      "BUTTON-1",
+      "VC2-8821"
+    ],
+    "description": "VC2-8821: Memory Leak Detection",
+    "steps_count": 0,
+    "step_names": []
+  },
+  {
+    "id": "vc2-8983-search-memory-leak.test",
+    "file": "tests/vpromedia/vc2-8983-search-memory-leak.test.ts",
+    "jira_keys": [
+      "QA-170",
+      "VC2-8821",
+      "VC2-8983"
+    ],
+    "description": "VC2-8983: Search Memory Leak Detection",
+    "steps_count": 0,
+    "step_names": []
+  },
+  {
+    "id": "vc2-8990-recorded.test",
+    "file": "tests/vc2-8990-recorded.test.ts",
+    "jira_keys": [
+      "VC2-8990"
+    ],
+    "description": "VC2-8990: Fix ",
+    "steps_count": 1,
+    "step_names": [
+      "VC2-8990: Fix "
+    ]
+  },
+  {
+    "id": "vc2-9225-recorded.test",
+    "file": "tests/vpromedia/vc2-9225-recorded.test.ts",
+    "jira_keys": [
+      "VC2-9225"
+    ],
+    "description": "VC2-9225: Deleted users not appearing in the deleted users tab",
+    "steps_count": 1,
+    "step_names": [
+      "VC2-9225: Deleted users not appearing in the deleted users tab"
+    ]
+  },
+  {
+    "id": "vc2-9267-recorded.test",
+    "file": "tests/vpromedia/vc2-9267-recorded.test.ts",
+    "jira_keys": [
+      "BTN-52552",
+      "VC2-9267"
+    ],
+    "description": "VC2-9267: Investigate missing script polish option in QO",
+    "steps_count": 1,
+    "step_names": [
+      "VC2-9267: Investigate missing script polish option in QO"
+    ]
+  }
+]

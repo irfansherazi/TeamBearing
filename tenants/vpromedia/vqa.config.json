@@ -1,0 +1,37 @@
+{
+  "tenant_id": "vpromedia",
+  "display_name": "vProMedia (vCreative)",
+  "tier": 1,
+  "base_urls": {
+    "qa":   "https://qa.vcreative.net",
+    "test": "https://two-test.vcreative.net",
+    "prod": "https://vcreative.net"
+  },
+  "default_env": "qa",
+  "auth": {
+    "type": "form_login",
+    "login_path": "/",
+    "email_selector": "input[type='email'], input[placeholder*='Email']",
+    "password_selector": "input[type='password']",
+    "submit_selector": "button[type='submit'], button:has-text('Sign In'), button:has-text('Log In')",
+    "jwt_storage_key": "vc2JWT",
+    "post_login_url_fragment": "/vpro"
+  },
+  "app_profile": {
+    "framework": "Angular",
+    "component_library": "PrimeNG",
+    "app_root_selectors": ["app-root", "vp-root", "[ng-version]", "router-outlet"]
+  },
+  "helpers_dir": "tenants/vpromedia/helpers",
+  "selectors_file": "tenants/vpromedia/selectors.json",
+  "rag": {
+    "min_corpus_for_bm25": 10,
+    "selector_top_k": 5,
+    "helper_inject_fallback": true
+  },
+  "pipeline": {
+    "tsc_config": "playwright/tsconfig.json",
+    "output_dir": "playwright/tests/generated",
+    "selector_types_file": "playwright/utils/generated/vpromedia_selectors.ts"
+  }
+}

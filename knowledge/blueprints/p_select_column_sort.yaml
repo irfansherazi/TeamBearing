@@ -1,0 +1,217 @@
+# knowledge/blueprints/p_select_column_sort.yaml
+#
+# Recipe: p_select_column_sort
+#
+# Handles the PrimeNG p-select compound column headers in the Production Orders
+# table (Due/Days/SubmittedOn and Start/End columns).
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# WHY THIS RECIPE EXISTS
+# ────────────────────────────────────────────────────────────────────────────────
+# These columns use a PrimeNG p-select (combobox) inside the column <th>.
+# DOM structure: the overlay renders items via [innerHtml] with *ngIf conditions.
+# Items are CONDITIONALLY RENDERED based on current sort state — at most ONE
+# option is visible at a time (the "next" sort option).
+#
+# The naive approach (click p-select, then click visible option) suffers from
+# oscillation: PrimeNG shows the "next" option, so clicking it toggles the sort
+# direction. If the table is already in the correct direction, clicking adds a
+# second toggle — landing in the WRONG direction.
+#
+# This recipe uses option_value (the data-p-value attribute) so the planner
+# specifies the EXACT option to select, not the first visible one. Combined with
+# the is_sort_recipe pre-action hook, which reads the current aria-sort state
+# before any click and skips execution if the sort is already correct, this
+# eliminates oscillation entirely.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# OPTION VALUE MAP  (ground-truth from productionorders.component.ts)
+# ────────────────────────────────────────────────────────────────────────────────
+#
+# SEPARATOR NOTE: The separator character differs by view type.
+#   List/Modern view  → semicolon:  "due_date;1",  "start_date;1"
+#   Compact view      → colon:      "start_date:1", "end_date:-1"
+# This is a BUG/inconsistency in productionorders.component.ts:
+#   Modern reorderOptions (line ~630) uses semicolons consistently.
+#   Compact reorderOptions (line ~757) uses colons for startendCol
+#   but semicolons for duedaysCol.
+# The allowed_pattern for option_value MUST allow both ; and : as separators.
+#
+# Due/Days/SubmittedOn column (th.po-col-duedaysCol) — ALL VIEWS:
+#   Due ascending   (closest first):  option_value = "due_date;1"
+#   Due descending  (farthest first): option_value = "due_date;-1"
+#   Days ascending  (fewest first):   option_value = "submit_date;1"
+#   Days descending (most first):     option_value = "submit_date;-1"
+#   Submitted On ascending  (oldest): option_value = "submitted_on;1"
+#   Submitted On descending (recent): option_value = "submitted_on;-1"
+#
+# Start/End column (th.po-col-startendCol) — LIST/MODERN VIEW (semicolons):
+#   Start ascending  (closest first): option_value = "start_date;1"
+#   Start descending (oldest first):  option_value = "start_date;-1"
+#   End ascending    (closest first): option_value = "end_date;1"
+#   End descending   (oldest first):  option_value = "end_date;-1"
+#
+# Start/End column (th.po-col-startendCol) — COMPACT VIEW (colons, TS bug):
+#   Start ascending  (closest first): option_value = "start_date:1"
+#   Start descending (oldest first):  option_value = "start_date:-1"
+#   End ascending    (closest first): option_value = "end_date:1"
+#   End descending   (oldest first):  option_value = "end_date:-1"
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# HOW TO CHOOSE option_value AND expected_column BASED ON AC STEP
+# ────────────────────────────────────────────────────────────────────────────────
+#
+#  AC step contains:                col_css                  option_value     expected_column
+#  ────────────────────────────────────────────────────────────────────────────────────────
+#  "Due Date ascending"             th.po-col-duedaysCol     due_date;1       Due Date
+#  "Due Date descending"            th.po-col-duedaysCol     due_date;-1      Due Date
+#  "Days ascending"                 th.po-col-duedaysCol     submit_date;1    Days
+#  "Days descending"                th.po-col-duedaysCol     submit_date;-1   Days
+#  "Submitted On ascending"         th.po-col-duedaysCol     submitted_on;1   Submitted On
+#  "Submitted On descending"        th.po-col-duedaysCol     submitted_on;-1  Submitted On
+#  "Start Date asc" (List view)     th.po-col-startendCol    start_date;1     Start Date
+#  "Start Date desc" (List view)    th.po-col-startendCol    start_date;-1    Start Date
+#  "End Date asc" (List view)       th.po-col-startendCol    end_date;1       End Date
+#  "End Date desc" (List view)      th.po-col-startendCol    end_date;-1      End Date
+#  "Start Date asc" (Compact view)  th.po-col-startendCol    start_date:1     Start Date
+#  "Start Date desc" (Compact view) th.po-col-startendCol    start_date:-1    Start Date
+#  "End Date asc" (Compact view)    th.po-col-startendCol    end_date:1       End Date
+#  "End Date desc" (Compact view)   th.po-col-startendCol    end_date:-1      End Date
+#
+# IMPORTANT: The p-select for Due/Days column contains ALL three sub-columns
+# (Due Date, Days/submit_date, Submitted On). The single p-select in
+# th.po-col-duedaysCol handles all of them — col_css is always the <th> selector.
+#
+# FORBIDDEN locator for this recipe:
+#   css_selector: p-select#header-sort-drop-down-duedaysCol  ← TIMES OUT
+#   Instead use: $col_css p-select (scoped to <th>, as in sub-step 1).
+
+# ────────────────────────────────────────────────────────────────────────────────
+# PRE-ACTION SORT CHECK (is_sort_recipe: true)
+# ────────────────────────────────────────────────────────────────────────────────
+# Because is_sort_recipe is true, the recipe_runner AUTOMATICALLY reads the
+# current aria-sort state from the DOM (via JS) BEFORE executing any sub-step.
+# If the column is ALREADY sorted in the expected_direction, the recipe returns
+# {"success": True, "skipped": True} — zero clicks, zero LLM calls.
+# The planner MUST still provide expected_column and expected_direction in
+# recipe_params so the pre-check can compare against the current DOM state.
+
+name: p_select_column_sort
+description: >
+  PrimeNG p-select compound column header sort (Due/Days or Start/End columns).
+  Opens the column's p-select combobox and selects the EXACT option by data-p-value
+  attribute — never clicks the first visible option blindly.
+  Pre-action hook reads DOM aria-sort state; if already sorted correctly, skips execution.
+  Use option_value from the OPTION VALUE MAP comment above.
+
+# Marks this as a sort recipe — activates the pre_action_sort_check hook in
+# recipe_runner.py. Hook reads aria-sort before executing any sub-steps.
+is_sort_recipe: true
+
+trigger_keywords:
+  # Column name tokens
+  - due
+  - days
+  - "due / days"
+  - duedaysCol
+  - start
+  - end
+  - startendCol
+  - "start date"
+  - "end date"
+  - "submitted on"
+  # Interaction verbs
+  - sort
+  - column
+  - ascending
+  - descending
+  - "p-select"
+  - compound
+  - dropdown
+  - header
+
+parameters:
+  - name: col_css
+    description: >
+      CSS selector for the <th> element containing the p-select.
+      Due/Days/SubmittedOn column: th.po-col-duedaysCol
+      Start/End column: th.po-col-startendCol
+    # Semicolons are NOT in the default allowed_pattern — override here because
+    # option_value uses semicolons (e.g. "due_date;1").
+    # col_css uses only word chars, dots, dashes — standard CSS class selector.
+    allowed_pattern: '^[\w\s\.\-]+$'
+
+  - name: option_value
+    description: >
+      The data-p-value attribute of the p-select option to click.
+      This uniquely identifies both the sub-column AND the direction.
+      See the OPTION VALUE MAP comment at the top of this file for all valid values.
+      IMPORTANT SEPARATOR NOTE:
+        Due/Days column (all views):   semicolon separator   e.g. "due_date;1"
+        Start/End (List/Modern view):  semicolon separator   e.g. "start_date;1"
+        Start/End (Compact view):      COLON separator       e.g. "start_date:1"
+      This inconsistency is a bug in productionorders.component.ts Compact reorderOptions.
+      The planner must use the correct separator for the current view.
+    # Must allow both semicolons (;) AND colons (:) as separators.
+    # Semicolons: List/Modern view duedaysCol and startendCol
+    # Colons: Compact view startendCol (source bug — colons hardcoded there)
+    allowed_pattern: '^[\w\.\-;:]+$'
+
+  - name: expected_column
+    description: >
+      The visible column label text used by the pre-action sort check and verify_after.
+      Must match the text visible in the DOM column header.
+      Examples: "Due Date", "Days", "Submitted On", "Start Date", "End Date"
+    allowed_pattern: '^[\w\s\.\/]+$'
+
+  - name: expected_direction
+    description: >
+      Target sort direction: "ascending" or "descending".
+      Used by the pre-action sort check to skip if already correct,
+      and by verify_after to confirm the sort landed correctly.
+    allowed_pattern: '^(ascending|descending)$'
+
+steps:
+  # Sub-step 1: Click the p-select element inside the scoped column header <th>.
+  # Uses the col_css parameter to scope the click to the correct column's p-select.
+  # FORBIDDEN: p-select#header-sort-drop-down-duedaysCol (event binding timeout).
+  # CORRECT:   Scope to the <th> first, then find p-select inside it.
+  - action: click
+    strategy: css_selector
+    # css_selector: "$col_css p-select" — Template.substitute fills col_css at runtime.
+    # The $col_css Template variable is interpolated from the col_css parameter.
+    name: $col_css p-select
+    wait_after_ms: 1200  # PrimeNG overlay animation: 400-800ms + Angular CD + *ngIf render.
+                         # Previous setting of 850ms caused step 2 to fire before options rendered.
+                         # Increased to 1200ms to ensure all options are in DOM before step 2.
+
+  # Sub-step 2: Select the exact option by data-p-value attribute.
+  # Uses the option_value parameter for precise targeting — NOT the first visible option.
+  # The *ngIf template may render more than one option at a time in some sort states.
+  # The data-p-value attribute is the ground-truth selector from the Angular template.
+  # panelStyleClass="po-sorting-dropdown-panel" scopes to the correct overlay panel.
+  - action: click
+    strategy: css_selector
+    # Selects the li element with the exact data-p-value from the overlay panel.
+    # Template.substitute fills option_value at runtime.
+    name: .po-sorting-dropdown-panel li[data-p-value="$option_value"]
+    wait_after_ms: 600   # Allow Angular change detection + table re-sort API call.
+
+cleanup_on_failure:
+  # If sub-step 1 (opening the p-select) or sub-step 2 (clicking the option)
+  # fails, dismiss any open overlay with Escape and wait for Angular CD.
+  - action: press_key
+    key: Escape
+    wait_after_ms: 500
+  # Extra wait for PrimeNG overlay destroy animation to complete.
+  - action: wait
+    wait_after_ms: 300
+
+# Post-recipe verification: confirm the DOM aria-sort state matches the target.
+# Uses the JS-based table_sort check (never Vision OCR) matching the
+# pre_action_sort_check logic for consistency.
+# expected_column and expected_direction use Template.substitute from params.
+verify_after:
+  type: table_sort
+  expected_column: $expected_column
+  expected_direction: $expected_direction

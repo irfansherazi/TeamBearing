@@ -1,0 +1,115 @@
+{
+  "family": "vqa-backend",
+  "taskRoleArn": "arn:aws:iam::404940539857:role/VQAEcsTaskRole",
+  "executionRoleArn": "arn:aws:iam::404940539857:role/VQAEcsExecutionRole",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "2048",
+  "memory": "6144",
+  "containerDefinitions": [
+    {
+      "name": "vqa-backend",
+      "image": "404940539857.dkr.ecr.us-east-1.amazonaws.com/vqa-backend:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp"
+        },
+        {
+          "containerPort": 6080,
+          "hostPort": 6080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "VQA_MODE",
+          "value": "interactive"
+        },
+        {
+          "name": "DISPLAY",
+          "value": ":99"
+        },
+        {
+          "name": "VQA_HEADLESS",
+          "value": "0"
+        },
+        {
+          "name": "BROWSER_HEADLESS",
+          "value": "false"
+        },
+        {
+          "name": "BEDROCK_ROLES_KB_ID",
+          "value": "JXMMTMTI06"
+        },
+        {
+          "name": "DISABLE_BEDROCK_ROLES_KB",
+          "value": "true"
+        },
+        {
+          "name": "S3_BUCKET",
+          "value": "vcreative-deployments"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "API_KEYS",
+          "value": "vqa_prod_86f1f6a1e36c4b2789f2a24c58f9d0c2"
+        },
+        {
+          "name": "API_AUTH_ENABLED",
+          "value": "true"
+        },
+        {
+          "name": "EXTERNAL_HOST",
+          "value": "vqa.vcreative.net"
+        },
+        {
+          "name": "EXTERNAL_PROTOCOL",
+          "value": "https"
+        },
+        {
+          "name": "VQA_BUILD_NUMBER",
+          "value": "1.0.675"
+        },
+        {
+          "name": "SHARED_TEST_PASSWORD",
+          "value": "Ep!cVCteam2026$"
+        },
+        {
+          "name": "SSO_PUBLIC_KEY",
+          "value": "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCrtF1/vtK6y+kz6k9sfXyR3hM8\n2oNTZEU/6skRiFZLH9vpSIrP3WKFvajIDSfKrMZz/14PG3VegR+P/fEZEPKa5Tyd\nOAzWAhjt/lwFFkUetm1Fd29nruXak21A1lkQztesXryzoXAxzJ4Pw6n9qzvfdIL4\ndmY5zd1ctt53OvnzNQIDAQAB\n-----END PUBLIC KEY-----"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "vqa-data",
+          "containerPath": "/app/memory",
+          "readOnly": false
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/vqa-backend",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "name": "vqa-data",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-07e788a3e03bd2fd9",
+        "transitEncryption": "ENABLED"
+      }
+    }
+  ]
+}

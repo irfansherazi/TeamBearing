@@ -1,0 +1,644 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-04-22",
+  "source": "Consolidated from component_registry.json + selector_registry.json + human_guidance.md",
+  "notes": "Phase 5 hardening. Each component has versioned selectors, interaction protocols, and forbidden patterns.",
+  "components": {
+    "p-calendar": {
+      "description": "PrimeNG date picker — single or range mode",
+      "primeng_versions": ["v17", "v18", "v19"],
+      "selectors": [
+        {
+          "method": "css_selector",
+          "selector": "button.p-datepicker-trigger, button.p-datepicker-dropdown",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "Icon trigger button. v17=p-datepicker-trigger, v19=p-datepicker-dropdown"
+        },
+        {
+          "method": "css_selector",
+          "selector": "input.p-calendar-input, input.p-inputtext[placeholder*='mm/dd']",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "Date text input field. Accepts typed dates in MM/DD/YYYY"
+        },
+        {
+          "method": "css_selector",
+          "selector": "span.p-datepicker-day[data-date]:not(.p-disabled)",
+          "primeng_versions": ["v17", "v18"],
+          "confidence": 0.8,
+          "notes": "Day cell in calendar grid. data-date format: YYYY-M-D (M is 0-indexed)"
+        },
+        {
+          "method": "css_selector",
+          "selector": "button.p-datepicker-next-button, button.p-datepicker-prev-button",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "Month navigation buttons"
+        }
+      ],
+      "interaction_protocol": [
+        {
+          "action": "click",
+          "strategy": "css_selector",
+          "selector": "button.p-datepicker-trigger, button.p-datepicker-dropdown",
+          "wait_after_ms": 600,
+          "notes": "Open calendar overlay. Animation: 300-500ms"
+        },
+        {
+          "action": "fill",
+          "strategy": "css_selector",
+          "selector": "input.p-calendar-input, input.p-inputtext[placeholder*='mm/dd']",
+          "value": "<date_in_MM/DD/YYYY>",
+          "wait_after_ms": 300,
+          "notes": "Type date directly. Faster than grid navigation"
+        },
+        {
+          "action": "press_key",
+          "value": "Enter",
+          "wait_after_ms": 500,
+          "notes": "Commit date and close overlay"
+        }
+      ],
+      "forbidden_patterns": [
+        "fill() without first opening the calendar — bypasses Angular validation",
+        "Using fill() with non-MM/DD/YYYY format — Angular rejects silently"
+      ],
+      "angular_quirks": [
+        "Wait 500ms after selection for Angular change detection",
+        "Calendar panel appends to DOM <body>, not inside the component",
+        "In range mode: Tab advances between start and end dates"
+      ],
+      "animation_budget": {
+        "open_ms": 300,
+        "close_ms": 100,
+        "debounce_ms": 0,
+        "verifier_wait_ms": 400
+      },
+      "trigger_keywords": [
+        "date", "calendar", "due date", "start date", "end date",
+        "deadline", "datepicker", "date picker", "scheduled",
+        "p-calendar", "p-datepicker"
+      ],
+      "related_recipe": "p_calendar_single"
+    },
+    "p-autocomplete": {
+      "description": "PrimeNG autocomplete search field (e.g., Client selector)",
+      "primeng_versions": ["v17", "v18", "v19"],
+      "selectors": [
+        {
+          "method": "css_selector",
+          "selector": "input.p-autocomplete-input",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "Main text input. MUST use .type() not .fill() — debounce requires slow typing"
+        },
+        {
+          "method": "get_by_role",
+          "role": "searchbox",
+          "name": "Client ",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "Verified from qo_form_basic.test.ts — note trailing space in name"
+        },
+        {
+          "method": "css_selector",
+          "selector": ".p-autocomplete-panel li.p-autocomplete-item",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.9,
+          "notes": "Dropdown option items. Panel appends to <body>"
+        }
+      ],
+      "interaction_protocol": [
+        {
+          "action": "fill",
+          "strategy": "get_by_role",
+          "selector": "searchbox name='Client '",
+          "value": "<partial_client_name>",
+          "wait_after_ms": 500,
+          "notes": "Requires minimum 3 characters. Wait 500ms for debounce"
+        },
+        {
+          "action": "click",
+          "strategy": "get_by_role",
+          "selector": "option name='<full_client_name>'",
+          "wait_after_ms": 300,
+          "notes": "Click the matching option. Use .locator('span') if strict mode violation"
+        }
+      ],
+      "forbidden_patterns": [
+        "fill() — executes too fast and completely bypasses the 3-character debounce trigger",
+        "type() with less than 3 characters — panel won't appear"
+      ],
+      "angular_quirks": [
+        "Panel appends to DOM <body>, NOT inside the p-autocomplete element",
+        "Heavy debounce (300ms) requires network idle wait",
+        "Use getByRole('searchbox', { name: 'Client ' }) then getByRole('option', { name: 'ClientName' }).locator('span')"
+      ],
+      "animation_budget": {
+        "open_ms": 200,
+        "close_ms": 100,
+        "debounce_ms": 300,
+        "verifier_wait_ms": 500
+      },
+      "trigger_keywords": [
+        "autocomplete", "auto-complete", "type and select",
+        "client field", "advertiser field", "client name",
+        "search and select", "type to search"
+      ],
+      "related_recipe": ""
+    },
+    "p-select": {
+      "description": "PrimeNG v19 p-select (replaces p-dropdown in v17)",
+      "primeng_versions": ["v17", "v18", "v19"],
+      "selectors": [
+        {
+          "method": "css_selector",
+          "selector": ".p-select-overlay:not(.p-connected-overlay-hidden), .p-dropdown-panel:not(.p-connected-overlay-hidden)",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "Overlay panel selector. OR-chain for v17→v19 compat"
+        },
+        {
+          "method": "css_selector",
+          "selector": "th.po-col-duedaysCol p-select",
+          "primeng_versions": ["v19"],
+          "confidence": 1.0,
+          "notes": "Due/Days compound column sort dropdown. Use th-scoped selector"
+        },
+        {
+          "method": "css_selector",
+          "selector": "th.po-col-startendCol p-select",
+          "primeng_versions": ["v19"],
+          "confidence": 1.0,
+          "notes": "Start/End compound column sort dropdown"
+        }
+      ],
+      "interaction_protocol": [
+        {
+          "action": "primeng_dropdown",
+          "strategy": "css_selector",
+          "selector": "<trigger_selector>",
+          "value": "<option_text>",
+          "wait_after_ms": 300,
+          "notes": "Use primeng_dropdown macro action — NEVER use individual clicks"
+        }
+      ],
+      "forbidden_patterns": [
+        "p-select#header-sort-drop-down-duedaysCol — inputId is on the inner <input>, NOT the <p-select> host",
+        "Clicking the trigger twice without selecting an option — toggle loop",
+        ":has-text() pseudo-class — not supported in Playwright CSS selectors",
+        "get_by_role('combobox') without container scoping — matches multiple"
+      ],
+      "angular_quirks": [
+        "Overlay closes immediately on selection (<50ms)",
+        "element_visible on .p-select-overlay always fails — auto-satisfied by verifier",
+        "Use th-scoped selectors: th.po-col-duedaysCol p-select"
+      ],
+      "animation_budget": {
+        "open_ms": 200,
+        "close_ms": 50,
+        "debounce_ms": 0,
+        "verifier_wait_ms": 300
+      },
+      "trigger_keywords": [
+        "dropdown", "drop-down", "select from", "choose from",
+        "combobox", "select option", "pick from", "from the list",
+        "ad type", "p-select", "p-dropdown"
+      ],
+      "related_recipe": ""
+    },
+    "p-table": {
+      "description": "PrimeNG data table (Production Orders, MyBox, etc.)",
+      "primeng_versions": ["v17", "v18", "v19"],
+      "selectors": [
+        {
+          "method": "css_selector",
+          "selector": ".p-datatable-loading-overlay, .p-datatable-loading-icon",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "Loading spinner selectors — wait for hidden"
+        },
+        {
+          "method": "css_selector",
+          "selector": "th.po-col-clientCol",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "CLIENT column header for sorting"
+        },
+        {
+          "method": "css_selector",
+          "selector": "th.po-col-statusCol",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "STATUS/TASKS column header for sorting"
+        },
+        {
+          "method": "css_selector",
+          "selector": ".p-paginator-next:not(.p-disabled)",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "Next page button in paginator"
+        }
+      ],
+      "interaction_protocol": [
+        {
+          "action": "wait_for_hidden",
+          "selector": ".p-datatable-loading-overlay",
+          "wait_after_ms": 0,
+          "notes": "Always wait for loading to finish before interacting"
+        },
+        {
+          "action": "click",
+          "strategy": "get_by_text",
+          "selector": "<client_name>",
+          "wait_after_ms": 500,
+          "notes": "Click client name to open order. NEVER use get_by_role('link')"
+        }
+      ],
+      "forbidden_patterns": [
+        "scroll action — tables use PrimeNG virtual pagination, scrolling won't reveal more rows",
+        "get_by_role('link') for table rows — Angular doesn't expose ARIA link roles",
+        "verify action for sort order — use verify_table_sort instead",
+        "Clicking column header >2 times without verify_table_sort in between"
+      ],
+      "angular_quirks": [
+        "Data loads asynchronously — always wait for loading overlays",
+        "Sort cycles: click 1 = ascending, click 2 = descending, click 3 = unsorted",
+        "Do NOT include sort icons (pi-sort-up, pi-sort-down) in locator names"
+      ],
+      "animation_budget": {
+        "open_ms": 0,
+        "close_ms": 0,
+        "debounce_ms": 0,
+        "verifier_wait_ms": 1000
+      },
+      "trigger_keywords": [
+        "table", "list view", "row", "rows", "production orders",
+        "mybox", "my box", "grid", "pagination", "paginate",
+        "sort", "ascending", "descending"
+      ],
+      "related_recipe": ""
+    },
+    "p-toast": {
+      "description": "PrimeNG toast notification (success/error messages)",
+      "primeng_versions": ["v17", "v18", "v19"],
+      "selectors": [
+        {
+          "method": "css_selector",
+          "selector": ".p-toast-message",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "Toast container. Appears within 100ms, disappears after ~3s"
+        },
+        {
+          "method": "css_selector",
+          "selector": ".p-toast-detail, .p-toast-summary",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "Toast text content — summary and detail lines"
+        }
+      ],
+      "interaction_protocol": [],
+      "forbidden_patterns": [],
+      "angular_quirks": [
+        "Toasts disappear quickly (~3s). Verify immediately after trigger action",
+        "Use transient_page_text cache before attempting DOM lookup"
+      ],
+      "animation_budget": {
+        "open_ms": 100,
+        "close_ms": 3000,
+        "debounce_ms": 0,
+        "verifier_wait_ms": 200
+      },
+      "trigger_keywords": [
+        "toast", "notification", "success message", "error message",
+        "alert message", "snackbar", "confirmation message"
+      ],
+      "related_recipe": ""
+    },
+    "p-fileupload": {
+      "description": "PrimeNG file upload component",
+      "primeng_versions": ["v17", "v18", "v19"],
+      "selectors": [
+        {
+          "method": "css_selector",
+          "selector": "p-fileupload input[type='file']",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 1.0,
+          "notes": "Hidden file input — use set_input_files, NEVER click Browse"
+        }
+      ],
+      "interaction_protocol": [
+        {
+          "action": "set_input_files",
+          "strategy": "css_selector",
+          "selector": "p-fileupload input[type='file']",
+          "value": "<filename>",
+          "wait_after_ms": 1000,
+          "notes": "Upload file via hidden input. Wait 1000ms for Angular processing"
+        }
+      ],
+      "forbidden_patterns": [
+        "click() on Browse/Upload/Choose File buttons — triggers native OS dialog",
+        "Direct interaction with the file input's visible trigger button"
+      ],
+      "angular_quirks": [
+        "Never click Browse — use setInputFiles on the hidden input",
+        "After upload: wait 1000ms, then select File Type from p-dropdown",
+        "Multiple file uploads may require sequential setInputFiles calls"
+      ],
+      "animation_budget": {
+        "open_ms": 0,
+        "close_ms": 0,
+        "debounce_ms": 0,
+        "verifier_wait_ms": 1000
+      },
+      "trigger_keywords": [
+        "file upload", "upload file", "attach file", "drag and drop",
+        "dropzone", "browse", "choose file", "upload a file",
+        "import file", "file input"
+      ],
+      "related_recipe": ""
+    },
+    "p-multiselect": {
+      "description": "PrimeNG multi-select dropdown — allows selecting multiple options",
+      "primeng_versions": ["v17", "v18", "v19"],
+      "selectors": [
+        {
+          "method": "css_selector",
+          "selector": ".p-multiselect-trigger, .p-multiselect-label-container",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.8,
+          "notes": "Open trigger button and label container"
+        },
+        {
+          "method": "css_selector",
+          "selector": ".p-multiselect-item",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.8,
+          "notes": "Individual selectable option items in the panel"
+        },
+        {
+          "method": "css_selector",
+          "selector": ".p-multiselect-close",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.8,
+          "notes": "Close button to dismiss the panel"
+        }
+      ],
+      "interaction_protocol": [
+        {
+          "action": "click",
+          "strategy": "css_selector",
+          "selector": ".p-multiselect-trigger, .p-multiselect-label-container",
+          "wait_after_ms": 300,
+          "notes": "Click trigger to open panel. Wait 300ms for animation."
+        },
+        {
+          "action": "click",
+          "strategy": "css_selector",
+          "selector": ".p-multiselect-item",
+          "wait_after_ms": 100,
+          "notes": "Click each desired option"
+        },
+        {
+          "action": "click",
+          "strategy": "css_selector",
+          "selector": ".p-multiselect-close",
+          "wait_after_ms": 200,
+          "notes": "MUST close panel after selecting options"
+        }
+      ],
+      "forbidden_patterns": [
+        "select_option() — this is a custom div structure, not a native <select>",
+        "Leaving the panel open after selecting options — it covers the screen and blocks subsequent clicks"
+      ],
+      "angular_quirks": [
+        "Panel appends to body",
+        "MUST explicitly close the panel after selecting options, otherwise it covers the screen and blocks subsequent clicks"
+      ],
+      "animation_budget": {
+        "open_ms": 250,
+        "close_ms": 200,
+        "debounce_ms": 0,
+        "verifier_wait_ms": 300
+      },
+      "trigger_keywords": [
+        "multiselect", "multi-select", "multiple select", "select multiple",
+        "multi select", "p-multiselect"
+      ],
+      "related_recipe": ""
+    },
+    "p-checkbox": {
+      "description": "PrimeNG standalone checkbox component",
+      "primeng_versions": ["v17", "v18", "v19"],
+      "selectors": [
+        {
+          "method": "css_selector",
+          "selector": ".p-checkbox-box",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.8,
+          "notes": "Visual checkbox element to click. Native input is hidden."
+        }
+      ],
+      "interaction_protocol": [
+        {
+          "action": "click",
+          "strategy": "css_selector",
+          "selector": ".p-checkbox-box",
+          "wait_after_ms": 100,
+          "notes": "Click the visual .p-checkbox-box element to toggle"
+        }
+      ],
+      "forbidden_patterns": [
+        "check() or uncheck() — Playwright native methods fail because the input is visually hidden. Must click the visual .p-checkbox-box element",
+        "Clicking the native <input type='checkbox'> — it is visually hidden and throws 'element intercepted' in Playwright"
+      ],
+      "angular_quirks": [
+        "The native <input> is hidden. Click the .p-checkbox-box visual element instead",
+        "Check state: look for .p-highlight class on .p-checkbox-box"
+      ],
+      "animation_budget": {
+        "open_ms": 0,
+        "close_ms": 0,
+        "debounce_ms": 0,
+        "verifier_wait_ms": 100
+      },
+      "trigger_keywords": [
+        "checkbox", "check box", "tick", "p-checkbox", "check", "uncheck", "toggle checkbox"
+      ],
+      "related_recipe": ""
+    },
+    "p-confirmdialog": {
+      "description": "PrimeNG confirmation dialog modal (Yes/No prompt)",
+      "primeng_versions": ["v17", "v18", "v19"],
+      "selectors": [
+        {
+          "method": "css_selector",
+          "selector": ".p-dialog",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.8,
+          "notes": "Modal container. Wait for visible before interacting."
+        },
+        {
+          "method": "css_selector",
+          "selector": ".p-confirm-dialog-accept",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.8,
+          "notes": "Confirm/Yes button"
+        },
+        {
+          "method": "css_selector",
+          "selector": ".p-confirm-dialog-reject",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.8,
+          "notes": "Reject/No button"
+        }
+      ],
+      "interaction_protocol": [
+        {
+          "action": "wait_for_visible",
+          "strategy": "css_selector",
+          "selector": ".p-dialog",
+          "wait_after_ms": 350,
+          "notes": "Wait for dialog to appear and animate in before clicking"
+        },
+        {
+          "action": "click",
+          "strategy": "css_selector",
+          "selector": ".p-confirm-dialog-accept",
+          "wait_after_ms": 200,
+          "notes": "Click to accept/confirm"
+        }
+      ],
+      "forbidden_patterns": [
+        "Clicking outside the dialog to dismiss — focus is trapped, this does nothing",
+        "Using button text 'Yes'/'No' with get_by_role without the .p-confirm-dialog-accept scoping — risks matching other dialogs"
+      ],
+      "angular_quirks": [
+        "Modal appends to body. Focus is trapped inside until resolved — blocks all other UI interactions",
+        "Wait 350ms after the trigger click before asserting button visibility inside the dialog"
+      ],
+      "animation_budget": {
+        "open_ms": 300,
+        "close_ms": 200,
+        "debounce_ms": 0,
+        "verifier_wait_ms": 350
+      },
+      "trigger_keywords": [
+        "confirm", "confirm dialog", "yes no dialog", "confirmation",
+        "confirm popup", "p-confirmdialog", "modal confirm"
+      ],
+      "related_recipe": ""
+    },
+    "p-tablecheckbox": {
+      "description": "PrimeNG p-tablecheckbox — row selection checkbox inside a p-table",
+      "primeng_versions": ["v17", "v18", "v19"],
+      "selectors": [
+        {
+          "method": "css_selector",
+          "selector": "p-tablecheckbox",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.8,
+          "notes": "Toggle individual row selection"
+        },
+        {
+          "method": "css_selector",
+          "selector": "p-tablecheckbox:first-of-type",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.8,
+          "notes": "First row checkbox"
+        },
+        {
+          "method": "css_selector",
+          "selector": ".p-checkbox-box",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.8,
+          "notes": "Visual checkbox box inside table rows"
+        }
+      ],
+      "interaction_protocol": [
+        {
+          "action": "click",
+          "strategy": "css_selector",
+          "selector": "p-tablecheckbox",
+          "wait_after_ms": 200,
+          "notes": "Click p-tablecheckbox to toggle row selection"
+        }
+      ],
+      "forbidden_patterns": [
+        "check() / uncheck() — Playwright native methods fail on PrimeNG table checkboxes",
+        "getByRole('checkbox') — the native checkbox is hidden and not interactive",
+        "p-checkbox:has-text('Select All') — :has-text() pseudo-class is not supported in Playwright CSS selectors"
+      ],
+      "angular_quirks": [
+        "Custom component — use click(), not check(). The native checkbox is hidden",
+        "For Select All: target th .p-checkbox-box (the header checkbox), not a standalone p-checkbox text selector"
+      ],
+      "animation_budget": {
+        "open_ms": 0,
+        "close_ms": 0,
+        "debounce_ms": 0,
+        "verifier_wait_ms": 200
+      },
+      "trigger_keywords": [
+        "table checkbox", "row checkbox", "select row", "tablecheckbox",
+        "p-tablecheckbox", "select all rows", "batch select"
+      ],
+      "related_recipe": "batch_checkbox"
+    },
+    "p-table-header": {
+      "description": "PrimeNG p-table column header — sortable column headers with dropdown sub-menus for compound columns",
+      "primeng_versions": ["v17", "v18", "v19"],
+      "selectors": [
+        {
+          "method": "get_by_role",
+          "selector": "get_by_role(\"columnheader\", name=\"{column_name}\")",
+          "primeng_versions": ["v17", "v18", "v19"],
+          "confidence": 0.8,
+          "notes": "Use ONLY clean column label text — do NOT include sort icons or arrow characters"
+        }
+      ],
+      "interaction_protocol": [
+        {
+          "action": "click",
+          "strategy": "get_by_role",
+          "selector": "columnheader name='{column_name}'",
+          "wait_after_ms": 1000,
+          "notes": "Click column header then wait 1000ms for sort re-render"
+        },
+        {
+          "action": "verify_table_sort",
+          "strategy": "verify_table_sort",
+          "selector": "{column_name}",
+          "wait_after_ms": 0,
+          "notes": "Always verify with verify_table_sort, never a standard verify action"
+        }
+      ],
+      "forbidden_patterns": [
+        "Using a standard verify action to visually check sort order — causes infinite loops",
+        "Including 'pi-sort-up' or 'pi-sort-down' or arrow characters in get_by_role column header name — these are dynamic and cause locator failures",
+        "Clicking the column header more than 2 times without a verify_table_sort in between"
+      ],
+      "angular_quirks": [
+        "Do not include sort icons in the locator name. Target clean column text only",
+        "Wait 1000ms after clicking a header for Angular to re-render sorted data",
+        "Sort cycles: first click=ascending, second=descending, third=unsorted. Track click count",
+        "Some headers (Due/Days, Start/End) are compound columns — clicking opens a dropdown sub-menu, NOT a direct sort"
+      ],
+      "animation_budget": {
+        "open_ms": 0,
+        "close_ms": 0,
+        "debounce_ms": 0,
+        "verifier_wait_ms": 1000
+      },
+      "trigger_keywords": [
+        "column header", "sort column", "column sort", "sort by column",
+        "table header", "p-table-header", "ascending", "descending",
+        "sort ascending", "sort descending"
+      ],
+      "related_recipe": ""
+    }
+  }
+}

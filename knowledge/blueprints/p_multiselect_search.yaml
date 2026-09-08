@@ -1,0 +1,67 @@
+# knowledge/blueprints/p_multiselect_search.yaml
+#
+# Recipe: p_multiselect_search
+#
+# Opens a PrimeNG p-multiselect dropdown in the search panel, 
+# selects one or more options by visible label, then closes the panel.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# WHY THIS RECIPE EXISTS
+# ────────────────────────────────────────────────────────────────────────────────
+# The status_dropdown.yaml recipe targets single-select PrimeNG overlays.
+# The search panel's Status filter is a p-multiselect, which renders checkbox
+# options that keep the dropdown panel open after selection. This requires an
+# Escape key press to dismiss the overlay and a verify_after that checks for
+# element hidden state.
+# ────────────────────────────────────────────────────────────────────────────────
+
+name: p_multiselect_search
+description: >
+  Opens a PrimeNG p-multiselect dropdown in the search panel, 
+  selects one or more options by visible label, then closes the panel.
+
+trigger_keywords:
+  - "multiselect"
+  - "status filter"
+  - "select status"
+  - "p-multiselect"
+  - "statuses dropdown"
+
+parameters:
+  - name: multiselect_selector
+    description: CSS selector for the p-multiselect trigger element
+  - name: option_text
+    description: Visible label of the option to select
+
+steps:
+  # Sub-step 1: Click the trigger to open the overlay
+  - action: click
+    strategy: css_selector
+    selector: $multiselect_selector
+    wait_after_ms: 500
+
+  # Sub-step 2: Explicit wait for overlay render
+  - action: wait
+    wait_after_ms: 400
+
+  # Sub-step 3: Click the checkbox option inside the multiselect overlay
+  - action: click
+    strategy: get_by_role
+    role: option
+    name: $option_text
+    container_selector: ".p-multiselect-overlay, .p-overlay-content, .p-multiselect-items-wrapper"
+    wait_after_ms: 300
+
+  # Sub-step 4: Close the multiselect panel by pressing Escape
+  - action: press_key
+    key: Escape
+    wait_after_ms: 300
+
+verify_after:
+  type: element_hidden
+  selector: ".p-multiselect-overlay, .p-overlay-content"
+
+cleanup_on_failure:
+  - action: press_key
+    key: Escape
+    wait_after_ms: 200

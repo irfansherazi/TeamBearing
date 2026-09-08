@@ -1,0 +1,146 @@
+# knowledge/blueprints/inline_edit.yaml
+#
+# Recipe: inline_edit
+#
+# Handles PrimeNG p-table inline editing by simulating a double-click
+# (two rapid single clicks) to enter edit mode, fills the new value,
+# then presses Enter to commit.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# WHY THIS RECIPE EXISTS
+# ────────────────────────────────────────────────────────────────────────────────
+# PrimeNG p-table inline editing requires a double-click to activate the cell
+# editor. A single click only focuses the row — the input is not revealed until
+# the second click lands quickly enough that PrimeNG's (dblclick) handler fires.
+#
+# Playwright's locator.dblclick() exists but maps unreliably to the Angular
+# (dblclick) output EventEmitter in p-table — the timing depends on the host
+# app's change detection cycle. Two explicit click steps with a small gap between
+# them is more deterministic than dblclick() in practice.
+#
+# NOTE: click_count is silently ignored by Pydantic (not a valid RecipeStep field).
+# The double-click effect is achieved via two sequential click steps.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# DOM STRUCTURE (PrimeNG p-table inline edit)
+# ────────────────────────────────────────────────────────────────────────────────
+#
+#   <p-table [editMode]="row" or [editMode]="cell">
+#     <tr pEditableRow ...>
+#       <td pEditableColumn>
+#         <p-cellEditor>
+#           <ng-template pTemplate="input">
+#             <input class="p-inputtext" />   ← revealed on double-click
+#           </ng-template>
+#           <ng-template pTemplate="output">
+#             <!-- display value shown when not editing -->
+#           </ng-template>
+#         </p-cellEditor>
+#       </td>
+#     </tr>
+#   </p-table>
+#
+# The selector pattern "$cell_selector input, $cell_selector .p-inputtext"
+# handles both old (class="p-inputtext") and new (pInputText directive) forms.
+#
+# ────────────────────────────────────────────────────────────────────────────────
+# COMMIT BEHAVIOUR
+# ────────────────────────────────────────────────────────────────────────────────
+#
+# PrimeNG cell/row edit mode commits on:
+#   - Enter key      → dispatches editComplete event
+#   - Tab key        → moves to next editable cell (also commits)
+#   - Click outside  → cancels (row edit) or commits (cell edit, configurable)
+#
+# This recipe always uses Enter for an explicit, deterministic commit.
+
+name: inline_edit
+description: >
+  Double-click a PrimeNG p-table cell to enter inline edit mode, fill the new
+  value, then press Enter to commit. Uses two sequential click steps to simulate
+  the double-click that triggers p-table's editMode handler.
+
+# Hardware-level wait: PrimeNG tables often re-render multiple times after inline edit commit.
+force_wait_before_next: true
+force_wait_ms: 1500
+
+trigger_keywords:
+  - "inline edit"
+  - "edit cell"
+  - "edit row"
+  - "click to edit"
+  - "inline input"
+  - "editable cell"
+  - "cell edit"
+  - "p-table edit"
+  - "table inline"
+  - "row edit"
+
+parameters:
+  - name: cell_selector
+    description: >
+      CSS selector for the p-table cell (td) to inline-edit.
+      Examples:
+        "tr.p-row-odd td:nth-child(3)"          (3rd column of first odd row)
+        "p-table tr:first-child td.name-col"    (named column in first row)
+        "tbody tr:nth-child(2) td:nth-child(4)" (4th column, 2nd row)
+    allowed_pattern: "^[\\w\\s\\.\\-\\#\\[\\]=:\\/\\(\\)\\&,\\^\\*\\+\\'\\\"]+$"
+
+  - name: value
+    description: >
+      The text value to type into the inline edit input after the cell enters
+      edit mode. This replaces any existing content (Control+a clears first).
+      Example: "Updated Order Name"
+    allowed_pattern: "^[\\w\\s\\.\\-\\#\\[\\]=:\\/\\(\\)\\&,\\^\\*\\+\\'\\\"@!%$]+$"
+
+steps:
+  # Sub-step 1: First click — focuses the row/cell and prepares for edit mode.
+  # wait_after_ms: 200 gives Angular change detection time to run before the
+  # second click arrives, ensuring the (click) handler has completed.
+  - action: click
+    strategy: css_selector
+    selector: $cell_selector
+    wait_after_ms: 200
+
+  # Sub-step 2: Second click — triggers PrimeNG p-table's (dblclick) handler
+  # which switches the cell from output template to input template.
+  # wait_after_ms: 300 allows the input element to render and become interactive.
+  - action: click
+    strategy: css_selector
+    selector: $cell_selector
+    wait_after_ms: 300
+
+  # Sub-step 3: Select all existing text in the input so the fill step fully
+  # replaces it. Control+a is more reliable than triple-click in table cells.
+  - action: press_key
+    key: Control+a
+    wait_after_ms: 50
+
+  # Sub-step 4: Fill the new value. The OR-chain selector handles both PrimeNG
+  # v17 (class="p-inputtext") and v19 (pInputText directive rendering patterns).
+  # fill() clears any remaining text and types the value atomically.
+  - action: fill
+    strategy: css_selector
+    selector: "$cell_selector input, $cell_selector .p-inputtext"
+    value: $value
+    wait_after_ms: 200
+
+  # Sub-step 5: Commit the edit. Enter dispatches p-table's editComplete output
+  # which persists the value and reverts the cell to its output template.
+  - action: press_key
+    key: Enter
+    wait_after_ms: 400
+
+# ── Verification ──────────────────────────────────────────────────────────
+# Verify completion by checking for a structural DOM change (edit committed
+# and cell reverted to output template).
+verify_after:
+  type: element_hidden
+  selector: "$cell_selector input, $cell_selector .p-inputtext"
+
+cleanup_on_failure:
+  # Escape cancels the inline edit without saving — leaves the cell in a clean
+  # non-editing state so the planner can retry or plan an alternative action.
+  - action: press_key
+    key: Escape
+    wait_after_ms: 300

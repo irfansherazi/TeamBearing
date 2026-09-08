@@ -1,0 +1,236 @@
+###############################################################################
+# vQA Blueprint: Production Orders Table Column Sorting
+#
+# Sources:
+#   - vsuitePlatform/src/app/user/vppo/modules/productionorders/productionorders.component.ts
+#     → poCols.Modern / poCols.Minimal definitions (lines 602-878)
+#   - vsuitePlatform/src/app/user/vppo/modules/productionorders/productionorders.html
+#     → listview.html (pSortableColumn template, lines 192-204)
+#     → productionorders.html (sort-btn, sort-panel, p-select lines 59-93, 212-243)
+#
+# IMPORTANT column type distinctions:
+#   "standard" columns → click the th element directly (pSortableColumn)
+#   "dropdown" columns → click a p-select inside the th (Due/Days, Start/End)
+#   "compact view"     → use the sort-btn button + sort-panel popover, NOT th
+###############################################################################
+
+name: "Production Orders Table Sorting"
+trigger_keywords:
+  - "sort"
+  - "column header"
+  - "table header"
+  - "client name"
+  - "due date"
+  - "days"
+  - "start date"
+  - "end date"
+  - "status"
+  - "ascending"
+  - "descending"
+  - "a-z"
+  - "z-a"
+  - "oldest"
+  - "newest"
+  - "compact view"
+  - "list view"
+
+# ─────────────────────────────────────────────────────────────────
+# RULE 1: Know which view is active before attempting to sort
+# ─────────────────────────────────────────────────────────────────
+preconditions:
+  - step: "Identify the current view type"
+    how: |
+      Read page.locator('button#sort-btn').count() > 0 to detect Compact/Minimal view.
+      If sort-btn is present → use the compact sort flow.
+      If sort-btn is absent → you are in List (Modern) view → use th click or dropdown flow.
+  - step: "Wait for table data to be loaded before interacting with headers"
+    how: |
+      await page.locator('tbody tr').first().waitFor({ state: 'visible', timeout: 10000 });
+      Do NOT click headers while the loading spinner (.vcreative-icon) is visible.
+
+# ─────────────────────────────────────────────────────────────────
+# FLOW A: List View (Modern) — Standard clickable th columns
+# ─────────────────────────────────────────────────────────────────
+list_view_standard_columns:
+  description: >
+    These columns use PrimeNG pSortableColumn — clicking the <th> element
+    triggers ascending, clicking again triggers descending.
+  columns:
+    - name: "CLIENT"
+      field: "_clientname"
+      col_id: "clientCol"
+      th_selector: "th.po-col-clientCol"
+      fallback_selector: "th[pSortableColumn='_clientname']"
+      bad_selectors:
+        - "get_by_text('CLIENT')  # matches hidden span, will TIMEOUT"
+        - "get_by_role('columnheader', name='CLIENT')  # may match hidden header"
+
+    - name: "STATUS/TASKS"
+      field: "status"
+      col_id: "statusCol"
+      th_selector: "th.po-col-statusCol"
+      fallback_selector: "th[pSortableColumn='status']"
+
+  sort_procedure: |
+    # Step 1: Click the th element
+    await page.locator('th.po-col-clientCol').click();
+
+    # Step 2: Wait for table to re-sort
+    await page.waitForTimeout(1500);
+
+    # Step 3: Verify sort direction via aria-sort attribute on active th
+    const sortedTh = page.locator('th[aria-sort]');
+    const direction = await sortedTh.getAttribute('aria-sort');
+    # direction will be 'ascending' or 'descending'
+
+    # Step 4 (optional): Use vQA programmatic verifier
+    # action: verify_table_sort
+    # column: "CLIENT"
+    # order: "ascending"
+
+# ─────────────────────────────────────────────────────────────────
+# FLOW B: List View (Modern) — Dropdown sort columns
+# ─────────────────────────────────────────────────────────────────
+list_view_dropdown_columns:
+  description: >
+    These columns use a PrimeNG p-select dropdown INSIDE the th header.
+    You CANNOT sort them by clicking the th directly — the header renders
+    a custom dropdown menu with named sort options.
+
+    Due/Days:  due_date (oldest→newest), submit_date (Days), submitted_on
+    Start/End: start_date, end_date
+
+    CRITICAL: start_date and end_date are in [pSortableColumnDisabled] in
+    productionorders.html line 195 — they will NEVER respond to th clicks.
+
+  columns:
+    - name: "Due / Days"
+      col_id: "duedaysCol"
+      dropdown_selector: "th.po-col-duedaysCol p-select"
+      dropdown_id_selector: "p-select#header-sort-drop-down-duedaysCol"
+      panel_selector: ".po-sorting-dropdown-panel"
+      sort_options:
+        - label: "Due (oldest → newest)"
+          value: "due_date;1"
+          visible_text: "Due"  # text of the li item (with up arrow icon)
+        - label: "Due (newest → oldest)"
+          value: "due_date;-1"
+          visible_text: "Due"  # with down arrow icon
+        - label: "Days ascending"
+          value: "submit_date;1"
+          visible_text: "Days"
+        - label: "Days descending"
+          value: "submit_date;-1"
+          visible_text: "Days"
+        - label: "Submitted On ascending"
+          value: "submitted_on;1"
+          visible_text: "Submitted On"
+        - label: "Submitted On descending"
+          value: "submitted_on;-1"
+          visible_text: "Submitted On"
+
+    - name: "Start / End"
+      col_id: "startendCol"
+      dropdown_selector: "th.po-col-startendCol p-select"
+      dropdown_id_selector: "p-select#header-sort-drop-down-startendCol"
+      panel_selector: ".po-sorting-dropdown-panel"
+      sort_options:
+        - label: "Start ascending"
+          value: "start_date;1"
+          visible_text: "Start"
+        - label: "Start descending"
+          value: "start_date;-1"
+          visible_text: "Start"
+        - label: "End ascending"
+          value: "end_date;1"
+          visible_text: "End"
+        - label: "End descending"
+          value: "end_date;-1"
+          visible_text: "End"
+
+  sort_procedure: |
+    # Step 1: Click the p-select dropdown trigger inside the column header
+    await page.locator('th.po-col-duedaysCol p-select').click();
+
+    # Step 2: Wait for dropdown panel to appear
+    await page.locator('.po-sorting-dropdown-panel').waitFor({ state: 'visible', timeout: 3000 });
+
+    # Step 3: Click the desired option by its visible text
+    # For "Due ascending": click li containing "Due" with up-arrow icon
+    # For "Days ascending": click li containing "Days" with up-arrow icon
+    # NOTE: Use .filter({ hasText: 'Due' }) and check for pi-sort-up inside if ambiguous
+    await page.locator('.po-sorting-dropdown-panel li').filter({ hasText: 'Due' }).first().click();
+
+    # Step 4: Wait for table to reload
+    await page.waitForTimeout(2000);
+
+# ─────────────────────────────────────────────────────────────────
+# FLOW C: Compact View (Minimal) — Sort via sort-btn popover
+# ─────────────────────────────────────────────────────────────────
+compact_view_sorting:
+  description: >
+    In Compact/Minimal view, column headers are NOT clickable for sort.
+    Use the sort-btn above the grid to open a p-popover with sort options.
+
+  available_sort_columns:
+    - "Client"
+    - "Title"
+    - "Ad type"
+    - "Status"
+    - "Due Date"
+    - "Submit Date"
+
+  sort_procedure: |
+    # Step 1: Click the sort button to open the sort panel popover
+    await page.locator('button#sort-btn').click();
+
+    # Step 2: Wait for the sort-panel popover to appear
+    await page.locator('.sort-panel').waitFor({ state: 'visible', timeout: 3000 });
+
+    # Step 3: Click the desired sort option li
+    await page.locator('.sort-panel li').filter({ hasText: 'Client' }).click();
+    # Clicking an already-active item TOGGLES direction (ascending ↔ descending)
+
+    # Step 4: Wait for table to re-sort
+    await page.waitForTimeout(1500);
+
+  verify_sort: |
+    # Read sort-btn label to confirm active sort column
+    const btnLabel = await page.locator('button#sort-btn').innerText();
+    # btnLabel = "Client" or "Due Date" etc.
+
+    # Check direction via sort-arrow class
+    const isAscending = await page.locator('button.sort-btn .sort-arrow.up').count() > 0;
+    # isAscending = true → ascending, false → descending
+
+# ─────────────────────────────────────────────────────────────────
+# VERIFICATION: How to confirm sort worked (all views)
+# ─────────────────────────────────────────────────────────────────
+verification:
+  programmatic:
+    action: "verify_table_sort"
+    note: "Use the vQA verify_table_sort executor action — it reads actual DOM row values"
+    example:
+      action: "verify_table_sort"
+      column: "CLIENT"
+      order: "ascending"
+
+  aria_sort_check:
+    note: "PrimeNG sets aria-sort on the active sorted th in list view"
+    ascending_selector: "th[aria-sort='ascending']"
+    descending_selector: "th[aria-sort='descending']"
+
+  icon_check:
+    ascending_icons: ["th .pi-sort-up", "th .pi-sort-amount-up-alt"]
+    descending_icons: ["th .pi-sort-down", "th .pi-sort-amount-down"]
+    warning: "Icons are CSS-only — do NOT try to read their text content, there is none"
+
+  anti_patterns:
+    - pattern: "Checking first row cell text manually to verify sort"
+      problem: "Unreliable — vQA verifier reads stale screenshot. Always use verify_table_sort or aria-sort."
+    - pattern: "get_by_text('Days') to click header"
+      problem: "Matches the <span class='hide-in-option'>/Days</span> hidden node. ALWAYS TIMES OUT."
+    - pattern: "get_by_role('columnheader', name='Due / Days')"
+      problem: "The Due/Days header inner text includes sort-icon HTML that breaks ARIA name matching."
+    - pattern: "Clicking th elements in compact view"
+      problem: "Compact view does not render sortable column headers — sort-btn is the only entry point."

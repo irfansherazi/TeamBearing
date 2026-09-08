@@ -1,0 +1,52 @@
+# vQA Workflow Blueprint: Upload File
+# Source: qa-196-files_client_upload.test.ts
+# Last verified: 2026-04-10
+
+name: Upload File (Client/QO)
+description: |
+  File upload flow using Playwright's setInputFiles API.
+  NEVER clicks Browse/Upload buttons — bypasses OS file dialog entirely.
+  Supports both dropzone-style and dialog-style file inputs.
+
+steps:
+  - action: set_input_files
+    selector: "p-fileupload input[type='file']"
+    value: "{filename}"
+    notes: |
+      Primary selector for PrimeNG file upload component.
+      Falls back to: span.ui-fileupload-choose input[type='file']
+
+  - action: wait
+    value: 1000
+    notes: "Allow Angular to process the file input change event"
+
+  - action: click
+    selector: "p-dropdown:has-text('Select a File Type') button"
+    notes: "Open the file type dropdown (required field)"
+
+  - action: click
+    strategy: get_by_role
+    role: option
+    name: "{file_type}"
+    notes: "Select the file type from the dropdown options"
+
+  - action: click
+    strategy: get_by_role
+    role: button
+    name: "Save"
+    notes: "Save the file upload"
+
+available_test_files:
+  - "500x1500.jpg"
+  - "Background Music.mp3"
+  - "Client Logo.jpg"
+  - "Copy points.doc"
+  - "Final Image Ad.png"
+  - "Final Script.doc"
+  - "Final Spot 15.mp3"
+  - "Final Spot 30.mp3"
+  - "Final Spot 60 .mp3"
+  - "Traffic Information File.pdf"
+  - "Voice Part 1.mp3"
+  - "Voice Part 2.mp3"
+  - "Voice Part 3.mp3"
