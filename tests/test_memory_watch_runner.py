@@ -19,9 +19,9 @@ from backend.engine.memory_watch_runner import (
 
 FLOW_CASES = [
     {
-        "description": "accepts po-open-spot",
-        "setup": lambda: "po-open-spot",
-        "expectations": lambda result: result == "po-open-spot",
+        "description": "accepts qo-open-close-snapshot",
+        "setup": lambda: "qo-open-close-snapshot",
+        "expectations": lambda result: result == "qo-open-close-snapshot",
     },
     {
         "description": "accepts sidebar-open-close",
@@ -44,9 +44,9 @@ def test_validate_flow_rejects_unknown():
 
 ENV_CASES = [
     {
-        "description": "defaults-adjacent qa",
-        "setup": lambda: "qa",
-        "expectations": lambda result: result == "qa",
+        "description": "accepts local",
+        "setup": lambda: "local",
+        "expectations": lambda result: result == "local",
     },
     {
         "description": "accepts test",
@@ -77,11 +77,11 @@ def test_validate_cycles_rejects_zero():
 
 
 def test_build_memory_watch_argv_includes_flags():
-    cmd = build_memory_watch_argv("po-open-spot", "qa", 5)
+    cmd = build_memory_watch_argv("qo-open-close-snapshot", "local", 1)
     joined = " ".join(cmd)
-    assert "--flow=po-open-spot" in joined
-    assert "--env=qa" in joined
-    assert "--cycles=5" in joined
+    assert "--flow=qo-open-close-snapshot" in joined
+    assert "--env=local" in joined
+    assert "--cycles=1" in joined
 
 
 def test_parse_sample_and_verdict_lines():

@@ -1,6 +1,10 @@
 import type { RefObject } from "react";
 import type { AiReviewTableRow } from "../lib/aiReviewTable";
-import type { MemoryWatchSample, MemoryWatchVerdict } from "../lib/memoryWatch";
+import type {
+  MemoryWatchFailureSummary,
+  MemoryWatchSample,
+  MemoryWatchVerdict,
+} from "../lib/memoryWatch";
 
 interface MemoryWatchResultsPanelProps {
   samples: MemoryWatchSample[];
@@ -12,6 +16,10 @@ interface MemoryWatchResultsPanelProps {
   emptyMessage: string;
   emptyLogMessage: string;
   showLog?: boolean;
+  /** Best-effort phase/reason parsed from the log when the run died with no structured results. */
+  failureSummary?: MemoryWatchFailureSummary | null;
+  /** Collapse the raw log behind a disclosure — for saved/finished runs, not a live stream. */
+  collapsibleLog?: boolean;
 }
 
 /**
@@ -30,7 +38,16 @@ export function MemoryWatchResultsPanel({
   emptyMessage,
   emptyLogMessage,
   showLog = true,
+  failureSummary,
+  collapsibleLog = false,
 }: MemoryWatchResultsPanelProps) {
+  const hasStructuredResults = samples.length > 0 || rows.length > 0 || verdict !== null;
+  const logContent = (
+    <pre ref={logEndRef} className="ai-review-log" aria-label="Memory Watch log">
+      {logLines.length > 0 ? logLines.join("\n") : emptyLogMessage}
+    </pre>
+  );
+
   return (
     <div className="panel ai-review-results">
       <div className="panel-header">
@@ -43,10 +60,17 @@ export function MemoryWatchResultsPanel({
       </div>
       <div className="ai-review-results-body">
         {verdict?.reason ? <p className="memory-watch-verdict">{verdict.reason}</p> : null}
+        {failureSummary ? (
+          <div className="memory-watch-failure-card" id="mw-failure-summary">
+            <p className="memory-watch-failure-phase">Failed at: {failureSummary.phase}</p>
+            <p className="memory-watch-failure-reason">{failureSummary.reason}</p>
+          </div>
+        ) : null}
         <table className="step-table">
           <thead>
             <tr>
               <th>Cycle</th>
+              <th>Step</th>
               <th>Used heap (MB)</th>
               <th>Δ from start</th>
               <th>GC</th>
@@ -56,12 +80,13 @@ export function MemoryWatchResultsPanel({
           <tbody>
             {samples.length === 0 ? (
               <tr>
-                <td colSpan={5}>{emptyMessage}</td>
+                <td colSpan={6}>{emptyMessage}</td>
               </tr>
             ) : (
               samples.map((sample) => (
                 <tr key={`mw-cycle-${sample.cycle}`} id={`mw-cycle-${sample.cycle}`}>
                   <td>{sample.cycle === 0 ? "0 (start)" : String(sample.cycle)}</td>
+                  <td>{sample.label || "—"}</td>
                   <td>{sample.usedMb.toFixed(2)}</td>
                   <td>
                     {sample.cycle === 0
@@ -104,9 +129,14 @@ export function MemoryWatchResultsPanel({
           />
         ) : null}
         {showLog ? (
-          <pre ref={logEndRef} className="ai-review-log" aria-label="Memory Watch log">
-            {logLines.length > 0 ? logLines.join("\n") : emptyLogMessage}
-          </pre>
+          collapsibleLog ? (
+            <details className="memory-watch-log-details" open={!hasStructuredResults && !failureSummary}>
+              <summary>Raw log</summary>
+              {logContent}
+            </details>
+          ) : (
+            logContent
+          )
         ) : null}
       </div>
     </div>

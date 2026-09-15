@@ -27,6 +27,7 @@ const VPPO_URL_MAP: Record<string, string> = {
   smoke: 'http://smoketest.sandbox.internal.vcreative.net/mytlc/mytlc_logged.php',
   qa:    'http://qa.sandbox.internal.vcreative.net/mytlc/mytlc_logged.php',
   prod:  'http://www.vcreative.net/mytlc/mytlc_logged.php',
+  local: 'http://localhost:4200',
 };
 export const VPPO_BASE_URL = process.env.VPPO_BASE_URL || VPPO_URL_MAP[TEST_ENV] || VPPO_URL_MAP.test;
 
@@ -153,7 +154,8 @@ export function logPlaywrightTestInfo() {
  *   qa    → 2.5×  (e.g. 220 s → 550 s)
  *   test  → 2×    (two-test.vcreative.net — remote AWS, needs breathing room too)
  *   smoke → 2×
- *   else  → 1×    (reserved for future local/mock envs)
+ *   local → 1×
+ *   else  → 1×
  */
 export const ENV_TIMEOUT_MULTIPLIER =
     TEST_ENV === 'qa' ? 2.5 :

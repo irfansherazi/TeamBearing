@@ -1,7 +1,7 @@
 /**
  * Memory Watch — Playwright entry (Chromium + CDP).
  *
- * Run via: npm run memory:test -- --flow=po-open-spot --env=qa --cycles=5
+ * Run via: npm run memory:test -- --flow=qo-open-close-snapshot --env=qa
  */
 
 import fs from 'fs';
@@ -16,6 +16,7 @@ import {
     type MemoryFlowId,
 } from '../../memory/constants';
 import { flowLabel, isMemoryFlowId, runFlowCycle } from '../../memory/flows';
+import { gradeQoRitual, runQoOpenCloseRitual } from '../../memory/qoRitual';
 import {
     bytesToMb,
     captureMetrics,
@@ -23,16 +24,20 @@ import {
     enableHeapProfiler,
 } from '../../memory/lib/memorySampler';
 import {
+    formatChecklistRow,
     formatReportLine,
     formatResultLines,
     formatSampleLine,
     formatVerdictLine,
 } from '../../memory/lib/logFormat';
+import { classifyMemoryWatchFailure } from '../../memory/lib/failureSummary';
 import { writeMemoryReport } from '../../memory/lib/reportGenerator';
 import {
     DEFAULT_MAX_HEAP_GROWTH_MB,
     evaluateHeapSeries,
     toHeapSamples,
+    type HeapSample,
+    type MemoryVerdict,
 } from '../../memory/lib/verdict';
 
 function resolveFlowId(): MemoryFlowId {
@@ -61,14 +66,40 @@ function resolveMaxGrowthMb(): number {
     return parsed;
 }
 
+const ritualRequested =
+    (process.env.MEMORY_FLOW || DEFAULT_FLOW_ID).trim() === 'qo-open-close-snapshot';
+
+// video must be top-level — Playwright rejects video inside describe (new worker).
+test.use({
+    user: ritualRequested ? 'Admin' : 'DemoProdDirector',
+    video: { mode: 'on', size: { width: 1440, height: 900 } },
+});
+
+// Marks that the test body reached its own results reporting, so afterEach knows
+// a crash happened before any samples/verdict/checklist made it to stdout —
+// most commonly the login fixture (utils/setup.ts) throwing before the test
+// body even starts, which a try/catch inside the body can never observe.
+const MEMORY_WATCH_REPORTED_ANNOTATION = 'memory-watch-reported';
+
 test.describe('Memory Watch', () => {
     test.skip(({ browserName }) => browserName !== 'chromium', 'CDP requires Chromium');
-    test.use({
-        user: 'DemoProdDirector',
-        video: { mode: 'on', size: { width: 1440, height: 900 } },
+
+    test.afterEach(async ({}, testInfo) => {
+        if (testInfo.status !== 'failed' && testInfo.status !== 'timedOut') {
+            return;
+        }
+        const alreadyReported = testInfo.annotations.some(
+            (entry) => entry.type === MEMORY_WATCH_REPORTED_ANNOTATION
+        );
+        if (alreadyReported) {
+            return;
+        }
+        const errorText = `${testInfo.error?.message || ''}\n${testInfo.error?.stack || ''}`.trim();
+        const { phase, reason } = classifyMemoryWatchFailure(errorText);
+        process.stdout.write(`${formatChecklistRow('FAILURE', 'FAIL', `${phase}: ${reason}`)}\n`);
     });
 
-    test('heap samples across open/close cycles', async ({ page }) => {
+    test('heap samples across open/close cycles', async ({ page }, testInfo) => {
         test.skip(
             !process.env.MEMORY_FLOW && process.env.MEMORY_WATCH !== '1',
             'Run via npm run memory:test'
@@ -77,45 +108,71 @@ test.describe('Memory Watch', () => {
         const cycles = resolveCycles();
         const maxGrowthMb = resolveMaxGrowthMb();
         const env = process.env.TEST_ENV || 'qa';
-        test.setTimeout(Math.max(180_000, cycles * 90_000));
+        const ritual = flowId === 'qo-open-close-snapshot';
+        test.setTimeout(ritual ? 600_000 : Math.max(180_000, cycles * 90_000));
 
-        await page.goto('/', { waitUntil: 'domcontentloaded' });
-        await page.waitForTimeout(4000);
-
-        const client = await page.context().newCDPSession(page);
-        await enableHeapProfiler(client);
-
-        const usedMb: number[] = [];
+        let samples: HeapSample[] = [];
+        let verdict: MemoryVerdict;
         let flowOk = true;
         let flowError = '';
 
-        try {
-            const baseline = await captureMetrics(client, 'baseline', {
-                gcPasses: DEFAULT_GC_PASSES,
-            });
-            usedMb.push(bytesToMb(baseline.usedHeapSize));
+        if (ritual) {
+            const result = await runQoOpenCloseRitual(page);
+            flowOk = result.flowOk;
+            flowError = result.flowError;
+            if (!flowOk) {
+                process.stdout.write(`FLOW error: ${flowError}\n`);
+            }
+            verdict = gradeQoRitual(result.points, maxGrowthMb);
+            samples = result.points.map((point, index) => ({
+                cycle: index,
+                label: point.label,
+                usedMb: point.usedMb,
+                deltaMb: index === 0 ? 0 : point.usedMb - result.points[0].usedMb,
+                gcRuns: DEFAULT_GC_PASSES,
+                status: index === result.points.length - 1
+                    ? verdict.pass
+                        ? 'pass'
+                        : 'fail'
+                    : 'watching',
+            }));
+        } else {
+            await page.goto('/', { waitUntil: 'domcontentloaded' });
+            await page.waitForTimeout(4000);
 
-            for (let cycle = 1; cycle <= cycles; cycle++) {
-                try {
-                    await runFlowCycle(page, flowId);
-                } catch (err: unknown) {
-                    flowOk = false;
-                    flowError = err instanceof Error ? err.message : String(err);
-                    process.stdout.write(`FLOW error on cycle ${cycle}: ${flowError}\n`);
-                    break;
-                }
-                const sample = await captureMetrics(client, `cycle-${cycle}`, {
+            const client = await page.context().newCDPSession(page);
+            await enableHeapProfiler(client);
+
+            const usedMb: number[] = [];
+            try {
+                const baseline = await captureMetrics(client, 'baseline', {
                     gcPasses: DEFAULT_GC_PASSES,
                 });
-                usedMb.push(bytesToMb(sample.usedHeapSize));
+                usedMb.push(bytesToMb(baseline.usedHeapSize));
+
+                for (let cycle = 1; cycle <= cycles; cycle++) {
+                    try {
+                        await runFlowCycle(page, flowId);
+                    } catch (err: unknown) {
+                        flowOk = false;
+                        flowError = err instanceof Error ? err.message : String(err);
+                        process.stdout.write(`FLOW error on cycle ${cycle}: ${flowError}\n`);
+                        break;
+                    }
+                    const sample = await captureMetrics(client, `cycle-${cycle}`, {
+                        gcPasses: DEFAULT_GC_PASSES,
+                    });
+                    usedMb.push(bytesToMb(sample.usedHeapSize));
+                }
+            } finally {
+                await disableHeapProfiler(client);
+                await client.detach().catch(() => undefined);
             }
-        } finally {
-            await disableHeapProfiler(client);
-            await client.detach().catch(() => undefined);
+
+            samples = toHeapSamples(usedMb, DEFAULT_GC_PASSES, maxGrowthMb);
+            verdict = evaluateHeapSeries(usedMb, maxGrowthMb);
         }
 
-        const samples = toHeapSamples(usedMb, DEFAULT_GC_PASSES, maxGrowthMb);
-        const verdict = evaluateHeapSeries(usedMb, maxGrowthMb);
         const stamp = new Date().toISOString().replace(/[:.]/g, '-');
         const reportDir = path.resolve(process.cwd(), 'playwright', 'memory-reports', `${stamp}-${flowId}`);
 
@@ -128,6 +185,7 @@ test.describe('Memory Watch', () => {
         for (const line of lines) {
             process.stdout.write(`${line}\n`);
         }
+        testInfo.annotations.push({ type: MEMORY_WATCH_REPORTED_ANNOTATION, description: 'results written' });
 
         const videoName = 'recording.webm';
         writeMemoryReport({
@@ -135,7 +193,7 @@ test.describe('Memory Watch', () => {
             flowId,
             flowName: flowLabel(flowId),
             env,
-            cycles,
+            cycles: ritual ? Math.max(samples.length, 1) : cycles,
             samples,
             verdict,
             flowOk,
@@ -164,6 +222,8 @@ test.describe('Memory Watch', () => {
 
         expect.soft(flowOk, flowError || 'Flow steps failed').toBe(true);
         expect.soft(verdict.overCap, verdict.reason).toBe(false);
-        expect.soft(verdict.strictlyIncreasing, 'Heap increased on every cycle').toBe(false);
+        if (!ritual) {
+            expect.soft(verdict.strictlyIncreasing, 'Heap increased on every cycle').toBe(false);
+        }
     });
 });

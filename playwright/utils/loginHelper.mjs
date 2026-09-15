@@ -1,23 +1,61 @@
 import { expect } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
+
+/** QA rejects doc+test_admin — use the known ghost-capable admin instead. */
+const QA_ADMIN_EMAIL = 'Suzan.Goritz@pattisonmedia.com';
+
+/**
+ * Resolve a username/role shorthand to a login email.
+ *
+ * @param identifier - Username, role, or email
+ * @param env - TEST_ENV value (qa, test, smoke, local)
+ * @returns Email for login
+ */
+export function resolveLoginEmail(identifier, env = process.env.TEST_ENV || 'test') {
+    if (!identifier) {
+        return identifier;
+    }
+    if (identifier.includes('@')) {
+        if (
+            env === 'qa' &&
+            identifier.toLowerCase() === 'doc+test_admin@vcreativeinc.com'
+        ) {
+            return QA_ADMIN_EMAIL;
+        }
+        return identifier;
+    }
+    if (env === 'qa' && (identifier === 'Admin' || identifier === 'admin')) {
+        return QA_ADMIN_EMAIL;
+    }
+    try {
+        const usersJsonPath = path.resolve('./playwright/fixtures/users/users.json');
+        if (fs.existsSync(usersJsonPath)) {
+            const userList = JSON.parse(fs.readFileSync(usersJsonPath, 'utf-8'));
+            const found = userList.find((u) => u.username === identifier || u.role === identifier);
+            if (found?.email) {
+                if (
+                    env === 'qa' &&
+                    String(found.email).toLowerCase() === 'doc+test_admin@vcreativeinc.com'
+                ) {
+                    return QA_ADMIN_EMAIL;
+                }
+                return found.email;
+            }
+        }
+    } catch {
+        return identifier;
+    }
+    return identifier;
+}
 
 /**
  * Manual Login with Session Detection
  */
 export async function login(page, username, password, baseURL) {
-    let loginEmail = username;
-    if (!username.includes('@')) {
-        try {
-            const fs = await import('fs');
-            const path = await import('path');
-            const usersJsonPath = path.resolve('./playwright/fixtures/users/users.json');
-            if (fs.existsSync(usersJsonPath)) {
-                const userList = JSON.parse(fs.readFileSync(usersJsonPath, 'utf-8'));
-                const found = userList.find(u => u.username === username || u.role === username);
-                if (found && found.email) {
-                    loginEmail = found.email;
-                }
-            }
-        } catch (e) {}
+    let loginEmail = resolveLoginEmail(username);
+    if (loginEmail !== username) {
+        console.log(`🔑 Resolved ${username} -> ${loginEmail}`);
     }
 
     console.log(`👤 Attempting login for: ${loginEmail} (role: ${username})`);
@@ -273,20 +311,10 @@ export async function assumeUser(page, identifier, password, baseURL) {
             } else if (onLogin || !onDashboard) {
                 console.log(`⚠️ vPPO: Not on dashboard (at ${currentUrl}). Falling back to live login...`);
                 // Resolve email for live login
-                let resolvedEmail = identifier;
-                try {
-                    const fs = await import('fs');
-                    const path = await import('path');
-                    const usersJsonPath = path.resolve('./playwright/fixtures/users/users.json');
-                    if (fs.existsSync(usersJsonPath)) {
-                        const userList = JSON.parse(fs.readFileSync(usersJsonPath, 'utf-8'));
-                        const found = userList.find(u => u.username === identifier || u.role === identifier);
-                        if (found && found.email) {
-                            resolvedEmail = found.email;
-                            console.log(`🔑 Resolved ${identifier} -> ${resolvedEmail}`);
-                        }
-                    }
-                } catch (e) {}
+                let resolvedEmail = resolveLoginEmail(identifier);
+                if (resolvedEmail !== identifier) {
+                    console.log(`🔑 Resolved ${identifier} -> ${resolvedEmail}`);
+                }
                 await login(page, resolvedEmail, password, baseURL);
             }
             return;
@@ -317,25 +345,9 @@ export async function assumeUser(page, identifier, password, baseURL) {
             const isLogin = page.url().includes('login');
             if (isLogin || !(await authenticatedIndicator.isVisible())) {
                 console.log(`⚠️ Session expired or not logged in. Falling back to manual login for ${identifier}...`);
-                let resolvedEmail = identifier;
-                if (!identifier.includes('@')) {
-                    try {
-                        const fs = await import('fs');
-                        const path = await import('path');
-                        const usersJsonPath = path.resolve('./playwright/fixtures/users/users.json');
-                        if (fs.existsSync(usersJsonPath)) {
-                            const userList = JSON.parse(fs.readFileSync(usersJsonPath, 'utf-8'));
-                            const found = userList.find(u => u.username === identifier || u.role === identifier);
-                            if (found && found.email) {
-                                resolvedEmail = found.email;
-                                console.log(`🔑 Resolved ${identifier} -> ${resolvedEmail}`);
-                            } else {
-                                console.warn(`⚠️ No email found for '${identifier}' in users.json — live login will likely fail.`);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn(`⚠️ users.json lookup failed: ${e.message}`);
-                    }
+                let resolvedEmail = resolveLoginEmail(identifier);
+                if (resolvedEmail !== identifier) {
+                    console.log(`🔑 Resolved ${identifier} -> ${resolvedEmail}`);
                 }
                 await login(page, resolvedEmail, password, baseURL);
             } else {

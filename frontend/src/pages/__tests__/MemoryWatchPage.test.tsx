@@ -48,20 +48,20 @@ const renderCases = [
     },
   },
   {
-    description: "renders Flow, Environment, and Cycles fields",
+    description: "renders Flow and Environment fields",
     setup: () => undefined,
     expectations: () => {
       expect(screen.getByLabelText(/^flow$/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/^environment$/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/^cycles$/i)).toBeInTheDocument();
     },
   },
   {
-    description: "defaults env to qa and cycles to 5",
+    description: "defaults env to qa and shows Quick Order ritual steps",
     setup: () => undefined,
     expectations: () => {
       expect(screen.getByLabelText(/^environment$/i)).toHaveValue("qa");
-      expect(screen.getByLabelText(/^cycles$/i)).toHaveValue(5);
+      expect(screen.getByText(/ghost in as demo prod dir/i)).toBeInTheDocument();
+      expect(screen.queryByLabelText(/^cycles$/i)).not.toBeInTheDocument();
     },
   },
 ];
@@ -95,6 +95,13 @@ describe("MemoryWatchPage — Run", () => {
     vi.unstubAllGlobals();
   });
 
+  it("keeps Run disabled until the step checklist is confirmed", () => {
+    renderPage();
+    expect(screen.getByRole("button", { name: /run memory check/i })).toBeDisabled();
+    fireEvent.click(screen.getByLabelText(/these steps look right/i));
+    expect(screen.getByRole("button", { name: /run memory check/i })).toBeEnabled();
+  });
+
   it("POSTs flow, env, and cycles then streams a heap sample", async () => {
     vi.mocked(authenticatedFetch).mockResolvedValue({
       ok: true,
@@ -102,6 +109,7 @@ describe("MemoryWatchPage — Run", () => {
     } as Response);
 
     renderPage();
+    fireEvent.click(screen.getByLabelText(/these steps look right/i));
     fireEvent.click(screen.getByRole("button", { name: /run memory check/i }));
 
     await waitFor(() => {
@@ -115,9 +123,9 @@ describe("MemoryWatchPage — Run", () => {
     );
     expect(postCall).toBeDefined();
     expect(JSON.parse(String(postCall?.[1]?.body))).toEqual({
-      flow: "po-open-spot",
+      flow: "qo-open-close-snapshot",
       env: "qa",
-      cycles: 5,
+      cycles: 1,
     });
 
     await waitFor(() => {

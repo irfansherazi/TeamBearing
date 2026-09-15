@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     evaluateHeapSeries,
+    evaluateRitualVerdict,
     isStrictlyIncreasing,
     toHeapSamples,
 } from '../../playwright/memory/lib/verdict';
@@ -68,5 +69,42 @@ describe('toHeapSamples', () => {
         expect(samples[0].status).toBe('watching');
         expect(samples[samples.length - 1].status).toBe('pass');
         expect(samples[1].deltaMb).toBeCloseTo(6);
+    });
+});
+
+const ritualCases = [
+    {
+        description: 'passes when persona growth is under 15 MB',
+        setup: () => [
+            { name: 'demo-prod-dir', growthMb: 4, pageSwitch: false },
+            { name: 'suzan-goritz', growthMb: 8, pageSwitch: false },
+        ],
+        expectations: (result: ReturnType<typeof evaluateRitualVerdict>) => {
+            expect(result.pass).toBe(true);
+            expect(result.overCap).toBe(false);
+        },
+    },
+    {
+        description: 'allows 6 MB extra when the list changed pages',
+        setup: () => [{ name: 'demo-prod-dir', growthMb: 18, pageSwitch: true }],
+        expectations: (result: ReturnType<typeof evaluateRitualVerdict>) => {
+            expect(result.pass).toBe(true);
+        },
+    },
+    {
+        description: 'fails when page-switch growth still exceeds 21 MB',
+        setup: () => [{ name: 'demo-prod-dir', growthMb: 22, pageSwitch: true }],
+        expectations: (result: ReturnType<typeof evaluateRitualVerdict>) => {
+            expect(result.pass).toBe(false);
+            expect(result.overCap).toBe(true);
+        },
+    },
+];
+
+describe('evaluateRitualVerdict', () => {
+    ritualCases.forEach(({ description, setup, expectations }) => {
+        it(description, () => {
+            expectations(evaluateRitualVerdict(setup()));
+        });
     });
 });

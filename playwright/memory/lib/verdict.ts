@@ -20,6 +20,13 @@ export interface MemoryVerdict {
 }
 
 export const DEFAULT_MAX_HEAP_GROWTH_MB = 15;
+export const PAGE_SWITCH_ALLOWANCE_MB = 6;
+
+export interface RitualPersonaGrowth {
+    name: string;
+    growthMb: number;
+    pageSwitch: boolean;
+}
 
 /**
  * True when every consecutive sample is higher than the previous one.
@@ -72,6 +79,60 @@ export function evaluateHeapSeries(
         reason = 'Heap increased on every cycle (unbounded trend)';
     }
     return { pass, growthMb, overCap, strictlyIncreasing, reason };
+}
+
+/**
+ * Grade Quick Order ritual growth per ghost user.
+ * A page change to find a 5-spot order may add PAGE_SWITCH_ALLOWANCE_MB extra.
+ *
+ * @param personas - Growth from each user's first snapshot to last
+ * @param maxGrowthMb - Allowed growth without a page change
+ * @param pageSwitchAllowanceMb - Extra MB allowed when the list was paged
+ * @returns Verdict
+ */
+export function evaluateRitualVerdict(
+    personas: RitualPersonaGrowth[],
+    maxGrowthMb: number = DEFAULT_MAX_HEAP_GROWTH_MB,
+    pageSwitchAllowanceMb: number = PAGE_SWITCH_ALLOWANCE_MB
+): MemoryVerdict {
+    if (personas.length === 0) {
+        return {
+            pass: false,
+            growthMb: 0,
+            overCap: false,
+            strictlyIncreasing: false,
+            reason: 'No heap samples were captured',
+        };
+    }
+    let worstGrowth = 0;
+    let failedName = '';
+    let failedLimit = maxGrowthMb;
+    let failedGrowth = 0;
+    for (const persona of personas) {
+        const limit = persona.pageSwitch ? maxGrowthMb + pageSwitchAllowanceMb : maxGrowthMb;
+        if (persona.growthMb > worstGrowth) {
+            worstGrowth = persona.growthMb;
+        }
+        if (persona.growthMb > limit && !failedName) {
+            failedName = persona.name;
+            failedLimit = limit;
+            failedGrowth = persona.growthMb;
+        }
+    }
+    const overCap = Boolean(failedName);
+    const reported = overCap ? failedGrowth : worstGrowth;
+    const reason = overCap
+        ? `${failedName} heap grew ${failedGrowth.toFixed(2)} MB (limit ${failedLimit} MB${
+              failedLimit > maxGrowthMb ? ', includes 6 MB page-switch allowance' : ''
+          })`
+        : `Heap ${reported >= 0 ? '+' : ''}${reported.toFixed(2)} MB vs ${maxGrowthMb} MB limit`;
+    return {
+        pass: !overCap,
+        growthMb: reported,
+        overCap,
+        strictlyIncreasing: false,
+        reason,
+    };
 }
 
 /**

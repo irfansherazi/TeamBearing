@@ -530,6 +530,46 @@ body {
   letter-spacing: 0.04em;
 }
 
+.mw-steps-heading {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mw-steps-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.mw-steps-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.form-group label.mw-steps-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.mw-steps-confirm input {
+  margin-top: 0.2rem;
+}
+
 .form-input,
 .form-select {
   background: var(--bg-tertiary);
@@ -8580,6 +8620,46 @@ body {
 .memory-watch-verdict {
   margin: 0 0 var(--space-sm);
   color: var(--text-secondary);
+}
+
+.memory-watch-failure-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--status-fail-bg);
+  border: 1px solid var(--status-fail-border);
+  border-radius: var(--radius-sm);
+}
+
+.memory-watch-failure-phase {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--status-fail);
+}
+
+.memory-watch-failure-reason {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.memory-watch-log-details summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: var(--space-xs) 0;
+}
+
+.memory-watch-log-details .ai-review-log {
+  margin-top: var(--space-sm);
 }
 
 @media (max-width: 720px) {

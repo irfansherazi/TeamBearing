@@ -6,12 +6,13 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 const FLOW_IDS = [
+    'qo-open-close-snapshot',
     'po-open-spot',
     'po-search-panel',
     'ai-intake-open-close',
     'sidebar-open-close',
 ];
-const ENVS = ['qa', 'test', 'smoke'];
+const ENVS = ['local', 'qa', 'test', 'smoke'];
 
 /**
  * Parse --flow / --env / --cycles from argv.
@@ -21,7 +22,7 @@ const ENVS = ['qa', 'test', 'smoke'];
  */
 function parseArgs(argv) {
     const parsed = {
-        flow: 'po-open-spot',
+        flow: 'qo-open-close-snapshot',
         env: 'qa',
         cycles: '5',
         maxGrowthMb: '',

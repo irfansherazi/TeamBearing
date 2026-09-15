@@ -13,7 +13,8 @@
 
 import { defineConfig } from '@playwright/test';
 import dotenv from 'dotenv';
-dotenv.config({ override: true });
+// Do not override vars already set by the CLI (e.g. memory:test --env=local).
+dotenv.config();
 
 // ---------------------------------------------------------------------------
 // Environment map — must match backend VALID_ENVS
@@ -24,6 +25,7 @@ const ENV_MAP = {
   test: 'https://two-test.vcreative.net',
   smoke: 'https://smoketest.vcreative.net',
   qa: 'https://qa.vcreative.net',
+  local: 'http://localhost:4200',
 } as const;
 
 type Env = keyof typeof ENV_MAP;

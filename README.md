@@ -10,7 +10,7 @@ It is not vQA. The dashboard is AI Review + Memory Watch. Review logic and memor
 
 **AI Review** — pick vsuitePlatform or vcapi, a branch, optional commits, and a base branch. Runs `npm run ai:review` and shows a PASS/FAIL table plus a live log.
 
-**Memory Watch** — pick a user flow (for example Production Orders open/close), env (`qa` / `test` / `smoke`), and cycle count. Drives a real Chrome session against the live vSuite URL, samples heap via CDP, and shows a PASS/FAIL table plus video.
+**Memory Watch** — pick a user flow (default: Production Orders Quick Order snapshots), env (`local` / `qa` / `test` / `smoke`), and cycle count when the flow repeats. Drives a real Chrome session against the vSuite URL, samples heap via CDP, and shows a PASS/FAIL table plus video. `local` is `http://localhost:4200`.
 
 ---
 
@@ -60,7 +60,7 @@ npm run ai:review -- --app=platform --branch=Your/Branch --base=Develop
 npm run ai:review -- --app=vcapi --branch=Your/Branch --base=develop
 
 # Memory Watch from the terminal
-npm run memory:test -- --flow=po-open-spot --env=qa --cycles=5
+npm run memory:test -- --flow=qo-open-close-snapshot --env=local
 ```
 
 ---

@@ -1,5 +1,5 @@
 import { chromium } from 'playwright';
-import { login } from './loginHelper.mjs';
+import { login, resolveLoginEmail } from './loginHelper.mjs';
 import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
@@ -8,7 +8,8 @@ const ENV_MAP = {
   prod: 'https://vcreative.net',
   test: 'https://two-test.vcreative.net',
   smoke: 'https://smoketest.vcreative.net',
-  qa: 'https://qa.vcreative.net'
+  qa: 'https://qa.vcreative.net',
+  local: 'http://localhost:4200',
 };
 
 const PWDEBUG = "0";
@@ -68,9 +69,10 @@ const adminPassword = process.env.ADMIN_TEST_PASSWORD || 'Ep!cVCteam2026$';
 //   3. playwright.generated.config.ts independently rejects TEST_ENV=prod.
 // ══════════════════════════════════════════════════════════════════════════════
 const PROD_URL = 'https://vcreative.net';
-const ALLOWED_ENVIRONMENTS = ['test', 'smoke', 'qa']; // 'prod' is intentionally absent and must stay absent.
+const REMOTE_ENVIRONMENTS = ['test', 'smoke', 'qa'];
+const ALLOWED_ENVIRONMENTS = ['local', ...REMOTE_ENVIRONMENTS]; // 'prod' is intentionally absent
 
-for (const env of ALLOWED_ENVIRONMENTS) {
+for (const env of REMOTE_ENVIRONMENTS) {
   const url = ENV_MAP[env];
   if (!url || url === PROD_URL || url.includes('vcreative.net') && !url.includes('-') && !url.includes('smoketest') && !url.includes('qa.')) {
     throw new Error(
@@ -89,7 +91,7 @@ for (const env of ALLOWED_ENVIRONMENTS) {
   // Fall back to all allowed environments when called directly without TEST_ENV.
   const envsToProcess = (TEST_ENV && ALLOWED_ENVIRONMENTS.includes(TEST_ENV))
     ? [TEST_ENV]
-    : ALLOWED_ENVIRONMENTS;
+    : REMOTE_ENVIRONMENTS;
 
   // Per-env accounting so we don't silently drop failures inside the parallel Promise.all.
   // Prior behavior: caught errors were console.error'd and immediately buried under the
@@ -115,11 +117,15 @@ for (const env of ALLOWED_ENVIRONMENTS) {
     // 2-3 at a time behind a small semaphore rather than reverting to full
     // parallel.
     for (const email of users) {
-      const isAdmin = email.includes('admin');
+      const loginEmail = resolveLoginEmail(email, env);
+      const isAdmin =
+        loginEmail.toLowerCase().includes('admin') ||
+        loginEmail.toLowerCase() === 'suzan.goritz@pattisonmedia.com' ||
+        email.includes('admin');
       const currentPassword = isAdmin ? adminPassword : password;
 
       let userPart;
-      if (isAdmin) {
+      if (email.includes('admin') || loginEmail === 'Suzan.Goritz@pattisonmedia.com') {
         userPart = 'Admin';
       } else if (email.includes('+')) {
         userPart = email.split('+')[1].split('@')[0];
@@ -131,8 +137,8 @@ for (const env of ALLOWED_ENVIRONMENTS) {
         const context = await browser.newContext();
         const page = await context.newPage();
 
-        console.log(`Grabbing ${email} on ${BASE_URL}...`);
-        await login(page, email, currentPassword, BASE_URL);
+        console.log(`Grabbing ${loginEmail} on ${BASE_URL}...`);
+        await login(page, loginEmail, currentPassword, BASE_URL);
 
         // For products on a separate domain (e.g. vPPO's PHP app), navigate there
         // so the context captures cookies for that domain too before saving.

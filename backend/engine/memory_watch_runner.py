@@ -15,13 +15,14 @@ from typing import Any
 _VREVIEW_ROOT = Path(__file__).resolve().parents[2]
 _ALLOWED_FLOWS = frozenset(
     {
+        "qo-open-close-snapshot",
         "po-open-spot",
         "po-search-panel",
         "ai-intake-open-close",
         "sidebar-open-close",
     }
 )
-_ALLOWED_ENVS = frozenset({"qa", "test", "smoke"})
+_ALLOWED_ENVS = frozenset({"local", "qa", "test", "smoke"})
 _SAMPLE_PREFIX = "MEMORY_WATCH_SAMPLE "
 _VERDICT_PREFIX = "MEMORY_WATCH_VERDICT "
 _REPORT_PREFIX = "MEMORY_WATCH_REPORT "
@@ -45,21 +46,22 @@ def validate_flow(value: str) -> str:
     stripped = (value or "").strip()
     if stripped not in _ALLOWED_FLOWS:
         raise MemoryWatchValidationError(
-            "Flow must be po-open-spot, po-search-panel, ai-intake-open-close, or sidebar-open-close"
+            "Flow must be qo-open-close-snapshot, po-open-spot, po-search-panel, "
+            "ai-intake-open-close, or sidebar-open-close"
         )
     return stripped
 
 
 def validate_env(value: str) -> str:
     """
-    Accept qa, test, or smoke.
+    Accept local, qa, test, or smoke.
 
     @param value: Raw form field
     @returns Stripped env id
     """
     stripped = (value or "qa").strip().lower()
     if stripped not in _ALLOWED_ENVS:
-        raise MemoryWatchValidationError("Env must be qa, test, or smoke")
+        raise MemoryWatchValidationError("Env must be local, qa, test, or smoke")
     return stripped
 
 

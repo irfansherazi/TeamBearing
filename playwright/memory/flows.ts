@@ -40,7 +40,7 @@ async function appeared(locatorWait: Promise<unknown>): Promise<boolean> {
  * @param page - Playwright page
  * @returns void
  */
-async function closeOverlay(page: Page): Promise<void> {
+export async function closeOverlay(page: Page): Promise<void> {
     const closeBtn = page
         .locator(
             'a#closeIcon, .p-sidebar-close, button.p-sidebar-close, .p-drawer-close, .v-sidebar-header .close-btn'
@@ -67,7 +67,7 @@ async function closeOverlay(page: Page): Promise<void> {
  * @param page - Playwright page
  * @returns void
  */
-async function goToProductionOrders(page: Page): Promise<void> {
+export async function goToProductionOrders(page: Page): Promise<void> {
     await page.goto(PO_LIST_PATH, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(SETTLE_MS);
     const grid = page.locator('.p-datatable-tbody, app-production-orders').first();
@@ -161,6 +161,8 @@ async function runSidebar(page: Page): Promise<void> {
  */
 export async function runFlowCycle(page: Page, flowId: MemoryFlowId): Promise<void> {
     switch (flowId) {
+        case 'qo-open-close-snapshot':
+            throw new Error('qo-open-close-snapshot must run via runQoOpenCloseRitual');
         case 'po-open-spot':
             await runPoOpenSpot(page);
             return;

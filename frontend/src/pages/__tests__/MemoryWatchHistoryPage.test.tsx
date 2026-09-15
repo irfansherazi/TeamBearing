@@ -2,7 +2,7 @@
  * MemoryWatchHistoryPage tests
  */
 
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryWatchHistoryPage } from "../MemoryWatchHistoryPage";
@@ -114,5 +114,49 @@ describe("MemoryWatchHistoryPage — saved runs", () => {
     fireEvent.click(await screen.findByText("mw-abc12345"));
     expect(await screen.findByText("HEAP")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();
+  });
+
+  it("shows a readable failure summary when a run has no samples or rows", async () => {
+    vi.mocked(authenticatedFetch).mockImplementation((url: string) => {
+      const href = String(url);
+      if (href.endsWith("/memory-watch/history")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([historyItem]),
+        } as Response);
+      }
+      if (href.includes("/video")) {
+        return Promise.resolve({
+          ok: false,
+          json: () => Promise.resolve({}),
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...historyItem,
+            verdict_pass: null,
+            samples: [],
+            rows: [],
+            log_text: [
+              "⚠️ STORAGE_DIR does not exist: /storage/qa",
+              "    Error: expect(locator).toBeVisible() failed",
+              "        at login (../utils/loginHelper.mjs:182:46)",
+            ].join("\n"),
+            report_dir: "",
+            video_file: "",
+          }),
+      } as Response);
+    });
+    renderPage();
+    fireEvent.click(await screen.findByText("mw-abc12345"));
+    const failureCard = (await screen.findByText(/failed at: login \/ session/i)).closest(
+      "#mw-failure-summary"
+    ) as HTMLElement;
+    expect(
+      within(failureCard).getByText(/expect\(locator\)\.toBeVisible\(\) failed/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/raw log/i)).toBeInTheDocument();
   });
 });

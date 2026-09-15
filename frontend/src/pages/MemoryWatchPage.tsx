@@ -13,6 +13,11 @@ import {
 } from "../lib/aiReviewTable";
 import {
   FLOW_OPTIONS,
+  ENV_OPTIONS,
+  getFlowPreviewSteps,
+  isFixedRitualFlow,
+  isMemoryWatchEnv,
+  isMemoryWatchFlowId,
   parseMemorySampleLine,
   parseMemoryVerdictLine,
   upsertMemorySample,
@@ -36,9 +41,10 @@ interface MemoryWatchRunResponse {
  * @returns The Memory Watch page
  */
 export function MemoryWatchPage() {
-  const [flow, setFlow] = useState<MemoryWatchFlowId>("po-open-spot");
+  const [flow, setFlow] = useState<MemoryWatchFlowId>("qo-open-close-snapshot");
   const [env, setEnv] = useState<MemoryWatchEnv>("qa");
   const [cycles, setCycles] = useState("5");
+  const [stepsConfirmed, setStepsConfirmed] = useState(false);
   const [runStatus, setRunStatus] = useState<RunStatus>("idle");
   const [runError, setRunError] = useState<string | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
@@ -54,11 +60,14 @@ export function MemoryWatchPage() {
   const destroyedRef = useRef(false);
   const videoObjectUrlRef = useRef<string | null>(null);
 
-  const cycleCount = Number.parseInt(cycles, 10);
+  const ritualFlow = isFixedRitualFlow(flow);
+  const previewSteps = getFlowPreviewSteps(flow);
+  const cycleCount = ritualFlow ? 1 : Number.parseInt(cycles, 10);
   const canRun =
     Number.isFinite(cycleCount) &&
     cycleCount >= 1 &&
     cycleCount <= 20 &&
+    stepsConfirmed &&
     runStatus !== "running";
 
   const setRunStatusSafe = useCallback((status: RunStatus) => {
@@ -275,7 +284,13 @@ export function MemoryWatchPage() {
               id="mw-flow"
               className="form-input"
               value={flow}
-              onChange={(e) => setFlow(e.target.value as MemoryWatchFlowId)}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (isMemoryWatchFlowId(next)) {
+                  setFlow(next);
+                  setStepsConfirmed(false);
+                }
+              }}
               disabled={runStatus === "running"}
             >
               {FLOW_OPTIONS.map((option) => (
@@ -294,18 +309,21 @@ export function MemoryWatchPage() {
               value={env}
               onChange={(e) => {
                 const next = e.target.value;
-                if (next === "qa" || next === "test" || next === "smoke") {
+                if (isMemoryWatchEnv(next)) {
                   setEnv(next);
                 }
               }}
               disabled={runStatus === "running"}
             >
-              <option value="qa">qa</option>
-              <option value="test">test</option>
-              <option value="smoke">smoke</option>
+              {ENV_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 
+          {ritualFlow ? null : (
           <div className="form-group">
             <label htmlFor="mw-cycles">Cycles</label>
             <input
@@ -318,6 +336,34 @@ export function MemoryWatchPage() {
               onChange={(e) => setCycles(e.target.value)}
               disabled={runStatus === "running"}
             />
+          </div>
+          )}
+
+          <div className="form-group">
+            <p id="mw-steps-label" className="mw-steps-heading">
+              Steps that will run
+            </p>
+            <ol id="mw-steps-list" className="mw-steps-list" aria-labelledby="mw-steps-label">
+              {previewSteps.map((step, index) => (
+                <li key={`${flow}-${index}`}>{step}</li>
+              ))}
+            </ol>
+            {ritualFlow ? (
+              <p id="mw-steps-note" className="mw-steps-note">
+                If the list must change pages to find a 5-spot order, the next snapshot may grow by
+                more than 6 MB. That is expected.
+              </p>
+            ) : null}
+            <label htmlFor="mw-steps-confirm" className="mw-steps-confirm">
+              <input
+                id="mw-steps-confirm"
+                type="checkbox"
+                checked={stepsConfirmed}
+                onChange={(e) => setStepsConfirmed(e.target.checked)}
+                disabled={runStatus === "running"}
+              />
+              These steps look right — run them in this order
+            </label>
           </div>
 
           {runError ? (

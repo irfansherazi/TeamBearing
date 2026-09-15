@@ -672,8 +672,8 @@ class AiReviewHistoryDetail(AiReviewHistoryItem):
 class MemoryWatchRunRequest(BaseModel):
     """Request body for POST /memory-watch/run."""
 
-    flow: str = Field(default="po-open-spot", description="Flow recipe id")
-    env: str = Field(default="qa", description="Target vSuite env: qa, test, or smoke")
+    flow: str = Field(default="qo-open-close-snapshot", description="Flow recipe id")
+    env: str = Field(default="qa", description="Target vSuite env: local, qa, test, or smoke")
     cycles: int = Field(default=5, description="Open/close repeats after baseline")
 
 
