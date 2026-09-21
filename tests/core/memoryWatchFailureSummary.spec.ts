@@ -22,6 +22,22 @@ const cases = [
         },
     },
     {
+        description: 'identifies a Memory Watch login form that never appeared',
+        setup: () =>
+            'Error: Login form never appeared at https://qa.vcreative.net/#/login. Current URL: https://qa.vcreative.net/',
+        expectations: (result: ReturnType<typeof classifyMemoryWatchFailure>) => {
+            expect(result.phase).toBe('Login / session');
+        },
+    },
+    {
+        description: 'identifies a missing Angular ghost panel after login',
+        setup: () =>
+            'Error: Ghost panel missing after login as syed@vcreativeinc.com. Need a vCreative admin (firm_id 1).',
+        expectations: (result: ReturnType<typeof classifyMemoryWatchFailure>) => {
+            expect(result.phase).toBe('Ghost login');
+        },
+    },
+    {
         description: 'identifies a ghost login failure',
         setup: () => 'Error: Could not ghost as Suzan Goritz: picker had no match',
         expectations: (result: ReturnType<typeof classifyMemoryWatchFailure>) => {

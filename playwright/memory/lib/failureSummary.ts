@@ -16,8 +16,8 @@ export interface MemoryWatchFailureSummary {
  * weakest, so a background warning never outranks the real failure site.
  */
 const PHASE_PATTERNS: { phase: string; pattern: RegExp }[] = [
-    { phase: 'Login / session', pattern: /at login \(|loginHelper\.mjs|Session expired or not logged in|Falling back to manual login/i },
-    { phase: 'Ghost login', pattern: /ghost picker|ghostLogin|Could not ghost as/i },
+    { phase: 'Login / session', pattern: /at login \(|loginHelper\.mjs|Session expired or not logged in|Falling back to manual login|Login form never appeared|Memory Watch login did not reach|did not leave the login form|Login failed:|Login requires MFA/i },
+    { phase: 'Ghost login', pattern: /ghost picker|ghostLogin|Could not ghost as|Ghost panel missing|ghost-panel-input/i },
     { phase: 'Quick Order flow steps', pattern: /Quick Order details did not open|No 1-spot Quick Order|No 5-spot or larger Quick Order|openMatchingQuickOrder/i },
     { phase: 'Flow steps', pattern: /FLOW error|runFlowCycle/i },
     { phase: 'Heap capture', pattern: /HeapProfiler|captureMetrics/i },

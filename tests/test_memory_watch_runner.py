@@ -4,12 +4,15 @@ tests/test_memory_watch_runner.py
 Unit tests for Memory Watch argv / validation helpers.
 """
 
+from unittest.mock import patch
+
 import pytest
 
 from backend.engine.memory_watch_runner import (
     MemoryWatchValidationError,
     build_memory_watch_argv,
     is_memory_watch_run_id,
+    kill_memory_watch_pid,
     parse_memory_sample_line,
     parse_memory_verdict_line,
     validate_cycles,
@@ -27,6 +30,11 @@ FLOW_CASES = [
         "description": "accepts sidebar-open-close",
         "setup": lambda: "sidebar-open-close",
         "expectations": lambda result: result == "sidebar-open-close",
+    },
+    {
+        "description": "accepts po-open-spot-warm",
+        "setup": lambda: "po-open-spot-warm",
+        "expectations": lambda result: result == "po-open-spot-warm",
     },
 ]
 
@@ -125,3 +133,22 @@ def test_require_run_id_rejects_bad_ids():
     with pytest.raises(HTTPException) as exc:
         _require_run_id("../etc")
     assert exc.value.status_code == 422
+
+
+def test_kill_memory_watch_pid_windows_uses_taskkill():
+    with patch("backend.engine.memory_watch_runner.os.name", "nt"), patch(
+        "backend.engine.memory_watch_runner.subprocess.run"
+    ) as mock_run, patch("backend.engine.memory_watch_runner.os.kill") as mock_kill:
+        kill_memory_watch_pid(4242)
+        mock_run.assert_called_once()
+        assert mock_run.call_args[0][0] == ["taskkill", "/PID", "4242", "/T", "/F"]
+        mock_kill.assert_not_called()
+
+
+def test_kill_memory_watch_pid_posix_sigterm():
+    with patch("backend.engine.memory_watch_runner.os.name", "posix"), patch(
+        "backend.engine.memory_watch_runner.os.kill"
+    ) as mock_kill:
+        kill_memory_watch_pid(99)
+        mock_kill.assert_called_once()
+        assert mock_kill.call_args[0][0] == 99

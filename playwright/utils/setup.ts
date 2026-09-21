@@ -64,11 +64,15 @@ const defaultUser = process.env.DEFAULT_USER || availableUsers[0] || 'DemoProdDi
 export const test = baseTest.extend<{
   user: string;
   anonymous: boolean;
+  autoLogin: boolean;
   context: BrowserContext;
   page: Page;
 }>({
   // Default anonymous to false
   anonymous: [false, { option: true }],
+
+  // When false, skip assumeUser (Memory Watch uses storage state only).
+  autoLogin: [true, { option: true }],
 
   // Default user can be overridden via test.use({ user: '...' })
   user: [defaultUser, { option: true }],
@@ -125,12 +129,12 @@ export const test = baseTest.extend<{
     await use(context);
   },
 
-  page: async ({ context, user, anonymous }, use) => {
+  page: async ({ context, user, anonymous, autoLogin }, use) => {
     const page = await context.newPage();
 
     // Standardized authentication: If a user is specified and we are not in anonymous mode,
     // ensure the session is active before starting the test.
-    if (!anonymous && user) {
+    if (!anonymous && autoLogin && user) {
       await assumeUser(page, user, SHARED_TEST_PASSWORD, BASE_URL);
     }
 

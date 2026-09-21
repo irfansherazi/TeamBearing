@@ -31,8 +31,9 @@ import type { SessionStartResponse } from "../../api/session";
 // ---------------------------------------------------------------------------
 
 // Mock the auth hook so tests don't need a real AuthProvider.
+const authState = { ssoToken: "mock-jwt-token" };
 vi.mock("../../auth/useAuth", () => ({
-  useAuth: () => ({ ssoToken: "mock-jwt-token" }),
+  useAuth: () => authState,
 }));
 
 // Mock useRebindTimer to prevent timer side-effects in tests.
@@ -85,6 +86,7 @@ describe("useSession runtime guard", () => {
 describe("SessionProvider bootstrap", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.ssoToken = "mock-jwt-token";
   });
 
   it("calls startSession on mount and sets sessionState = attached on success", async () => {
@@ -135,5 +137,32 @@ describe("SessionProvider bootstrap", () => {
     });
 
     expect(screen.getByTestId("state").textContent).toBe("capacity_reached");
+  });
+
+  it("does not call startSession again when the SSO token rotates after attach", async () => {
+    vi.spyOn(sessionApi, "startSession").mockResolvedValue(mockSuccessResponse);
+
+    const { rerender } = render(
+      <SessionProvider>
+        <ReadSession />
+      </SessionProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("state").textContent).toBe("attached");
+    });
+    expect(sessionApi.startSession).toHaveBeenCalledTimes(1);
+
+    authState.ssoToken = "rotated-jwt-token";
+    rerender(
+      <SessionProvider>
+        <ReadSession />
+      </SessionProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("state").textContent).toBe("attached");
+    });
+    expect(sessionApi.startSession).toHaveBeenCalledTimes(1);
   });
 });

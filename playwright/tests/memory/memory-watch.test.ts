@@ -7,15 +7,18 @@
 import fs from 'fs';
 import path from 'path';
 import { expect } from '@playwright/test';
-import { test } from '../../utils/setup';
+import { test, BASE_URL, STORAGE_DIR } from '../../utils/setup';
+import { ensureMemoryWatchSession } from '../../memory/lib/ensureSession';
+import { resolveMemoryWatchCredentials, storageUserFromEmail, DEFAULT_RITUAL_ADMIN_EMAIL } from '../../memory/lib/sessionCredentials';
 import {
     DEFAULT_CYCLES,
     DEFAULT_FLOW_ID,
     DEFAULT_GC_PASSES,
     FLOW_IDS,
+    flowNeedsWarmup,
     type MemoryFlowId,
 } from '../../memory/constants';
-import { flowLabel, isMemoryFlowId, runFlowCycle } from '../../memory/flows';
+import { flowLabel, isMemoryFlowId, runFlowCycle, warmupFlow } from '../../memory/flows';
 import { gradeQoRitual, runQoOpenCloseRitual } from '../../memory/qoRitual';
 import {
     bytesToMb,
@@ -68,17 +71,20 @@ function resolveMaxGrowthMb(): number {
 
 const ritualRequested =
     (process.env.MEMORY_FLOW || DEFAULT_FLOW_ID).trim() === 'qo-open-close-snapshot';
+const ritualStorageUser = storageUserFromEmail(
+    (process.env.MEMORY_WATCH_EMAIL ?? '').trim() || DEFAULT_RITUAL_ADMIN_EMAIL
+);
 
 // video must be top-level — Playwright rejects video inside describe (new worker).
 test.use({
-    user: ritualRequested ? 'Admin' : 'DemoProdDirector',
+    user: ritualRequested ? ritualStorageUser : 'DemoProdDirector',
+    autoLogin: false,
     video: { mode: 'on', size: { width: 1440, height: 900 } },
 });
 
 // Marks that the test body reached its own results reporting, so afterEach knows
 // a crash happened before any samples/verdict/checklist made it to stdout —
-// most commonly the login fixture (utils/setup.ts) throwing before the test
-// body even starts, which a try/catch inside the body can never observe.
+    // most commonly a login failure before the test body reports.
 const MEMORY_WATCH_REPORTED_ANNOTATION = 'memory-watch-reported';
 
 test.describe('Memory Watch', () => {
@@ -116,6 +122,19 @@ test.describe('Memory Watch', () => {
         let flowOk = true;
         let flowError = '';
 
+        const sessionUser = ritual
+            ? resolveMemoryWatchCredentials(true)
+            : resolveMemoryWatchCredentials(false);
+        await ensureMemoryWatchSession({
+            page,
+            baseUrl: BASE_URL,
+            user: sessionUser.email,
+            password: sessionUser.password,
+            storageDir: STORAGE_DIR,
+            storageUser: sessionUser.storageUser,
+            requireGhostPanel: ritual,
+        });
+
         if (ritual) {
             const result = await runQoOpenCloseRitual(page);
             flowOk = result.flowOk;
@@ -137,8 +156,10 @@ test.describe('Memory Watch', () => {
                     : 'watching',
             }));
         } else {
-            await page.goto('/', { waitUntil: 'domcontentloaded' });
             await page.waitForTimeout(4000);
+            if (flowNeedsWarmup(flowId)) {
+                await warmupFlow(page, flowId);
+            }
 
             const client = await page.context().newCDPSession(page);
             await enableHeapProfiler(client);

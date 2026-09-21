@@ -8,6 +8,7 @@ const path = require('path');
 const FLOW_IDS = [
     'qo-open-close-snapshot',
     'po-open-spot',
+    'po-open-spot-warm',
     'po-search-panel',
     'ai-intake-open-close',
     'sidebar-open-close',

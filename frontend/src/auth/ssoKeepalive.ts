@@ -96,7 +96,9 @@ export function createSsoKeepalive(config: SsoKeepaliveConfig): SsoKeepalive {
       const data = await response.json();
 
       if (data.ssoToken && typeof data.ssoToken === 'string' && data.ssoToken.length > 0) {
-        setToken(data.ssoToken);
+        if (data.ssoToken !== token) {
+          setToken(data.ssoToken);
+        }
       } else {
         // Successful response but no valid token — session is invalid
         stop();

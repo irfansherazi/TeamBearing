@@ -5,6 +5,7 @@ import { AiReviewPage } from './pages/AiReviewPage';
 import { AiReviewHistoryPage } from './pages/AiReviewHistoryPage';
 import { MemoryWatchPage } from './pages/MemoryWatchPage';
 import { MemoryWatchHistoryPage } from './pages/MemoryWatchHistoryPage';
+import { ReviewRulesPage } from './pages/ReviewRulesPage';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppShell } from './components/AppShell';
 
@@ -45,6 +46,16 @@ export const router = createBrowserRouter([
       <ProtectedRoute>
         <AppShell>
           <MemoryWatchHistoryPage />
+        </AppShell>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/review-rules',
+    element: (
+      <ProtectedRoute>
+        <AppShell>
+          <ReviewRulesPage />
         </AppShell>
       </ProtectedRoute>
     ),

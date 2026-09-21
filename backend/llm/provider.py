@@ -131,6 +131,10 @@ _PURPOSE_DEFAULTS: dict[str, dict[str, Any]] = {
         "temperature": 0.0,
         "max_tokens": 1024,
     },
+    "review_rule_proposer": {
+        "temperature": 0.0,
+        "max_tokens": 800,
+    },
 }
 
 

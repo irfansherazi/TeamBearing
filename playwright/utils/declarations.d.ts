@@ -1,5 +1,6 @@
 declare module '*/loginHelper.mjs' {
   import { Page } from '@playwright/test';
+  export function resolveLoginEmail(identifier?: string, env?: string): string;
   export function login(page: Page, username: string, password?: string, baseURL?: string): Promise<void>;
   export function logout(page: Page): Promise<void>;
   export function assumeUser(page: Page, identifier?: string, password?: string, baseURL?: string): Promise<void>;

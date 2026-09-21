@@ -397,6 +397,7 @@ export function MemoryWatchPage() {
         samples={samples}
         rows={rows}
         verdict={verdict}
+        flowId={flow}
         logLines={logLines}
         logEndRef={logEndRef}
         videoUrl={videoUrl}

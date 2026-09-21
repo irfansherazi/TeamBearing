@@ -5,8 +5,10 @@
 import { describe, it, expect } from "vitest";
 import {
   formatFlowLabel,
+  formatMemorySampleStep,
   getFlowPreviewSteps,
   isFixedRitualFlow,
+  latestSamplesByCycle,
   memoryOutcomeLabel,
   parseMemoryChecklistFromLog,
   parseMemorySampleLine,
@@ -62,6 +64,67 @@ describe("parseMemoryVerdictLine", () => {
   });
 });
 
+describe("formatMemorySampleStep", () => {
+  const stepLabelCases = [
+    {
+      description: "names warm-flow start as list already loaded",
+      setup: () => ({
+        flowId: "po-open-spot-warm",
+        sample: {
+          cycle: 0,
+          label: "baseline",
+          usedMb: 80,
+          deltaMb: 0,
+          gcRuns: 3,
+          status: "watching",
+        },
+      }),
+      expectations: (result: string) => {
+        expect(result).toMatch(/list already loaded/i);
+      },
+    },
+    {
+      description: "names later samples as open/close rounds",
+      setup: () => ({
+        flowId: "po-open-spot-warm",
+        sample: {
+          cycle: 2,
+          label: "cycle-2",
+          usedMb: 82,
+          deltaMb: 2,
+          gcRuns: 3,
+          status: "watching",
+        },
+      }),
+      expectations: (result: string) => {
+        expect(result).toBe("After open/close round 2");
+      },
+    },
+  ];
+
+  stepLabelCases.forEach(({ description, setup, expectations }) => {
+    it(description, () => {
+      const { flowId, sample } = setup();
+      expectations(formatMemorySampleStep(flowId, sample));
+    });
+  });
+});
+
+describe("latestSamplesByCycle", () => {
+  it("keeps the last retry for each cycle", () => {
+    const first = {
+      cycle: 0,
+      label: "baseline",
+      usedMb: 50,
+      deltaMb: 0,
+      gcRuns: 3,
+      status: "watching",
+    };
+    const retry = { ...first, usedMb: 80 };
+    expect(latestSamplesByCycle([first, retry])[0].usedMb).toBe(80);
+  });
+});
+
 describe("upsertMemorySample", () => {
   it("replaces the same cycle", () => {
     const first = {
@@ -102,6 +165,16 @@ describe("getFlowPreviewSteps", () => {
         expect(result).toEqual([]);
       },
     },
+    {
+      description: "returns warmup steps for po-open-spot-warm",
+      setup: () => "po-open-spot-warm",
+      expectations: (result: string[]) => {
+        expect(result[0]).toMatch(/not measured/i);
+        expect(result.some((step) => /baseline snapshot on the loaded list/i.test(step))).toBe(
+          true
+        );
+      },
+    },
   ];
 
   stepCases.forEach(({ description, setup, expectations }) => {
@@ -115,6 +188,7 @@ describe("isFixedRitualFlow", () => {
   it("is true for the Quick Order snapshot ritual", () => {
     expect(isFixedRitualFlow("qo-open-close-snapshot")).toBe(true);
     expect(isFixedRitualFlow("po-open-spot")).toBe(false);
+    expect(isFixedRitualFlow("po-open-spot-warm")).toBe(false);
   });
 });
 

@@ -48,3 +48,24 @@ def test_list_newest_first_and_missing(tmp_path: Path):
     listed = store.list_runs()
     assert [item["run_id"] for item in listed] == ["mw-22222222", "mw-11111111"]
     assert store.get_run("mw-00000000") is None
+
+
+def test_mark_stopped_only_updates_running_rows(tmp_path: Path):
+    store = MemoryWatchRunStore(tmp_path / "memory_watch_runs.db")
+    store.create_run("mw-running1", "po-open-spot", "qa", 5)
+    store.create_run("mw-done0001", "po-open-spot", "qa", 5)
+    store.finish_run(
+        "mw-done0001",
+        "completed",
+        [],
+        [],
+        "",
+        True,
+        1.0,
+        "",
+        "",
+    )
+    assert store.mark_stopped("mw-running1") is True
+    assert store.get_run("mw-running1")["status"] == "stopped"
+    assert store.mark_stopped("mw-done0001") is False
+    assert store.get_run("mw-done0001")["status"] == "completed"

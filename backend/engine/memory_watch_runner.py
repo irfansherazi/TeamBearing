@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import signal
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +19,7 @@ _ALLOWED_FLOWS = frozenset(
     {
         "qo-open-close-snapshot",
         "po-open-spot",
+        "po-open-spot-warm",
         "po-search-panel",
         "ai-intake-open-close",
         "sidebar-open-close",
@@ -46,8 +49,8 @@ def validate_flow(value: str) -> str:
     stripped = (value or "").strip()
     if stripped not in _ALLOWED_FLOWS:
         raise MemoryWatchValidationError(
-            "Flow must be qo-open-close-snapshot, po-open-spot, po-search-panel, "
-            "ai-intake-open-close, or sidebar-open-close"
+            "Flow must be qo-open-close-snapshot, po-open-spot, po-open-spot-warm, "
+            "po-search-panel, ai-intake-open-close, or sidebar-open-close"
         )
     return stripped
 
@@ -182,3 +185,25 @@ def is_memory_watch_run_id(run_id: str) -> bool:
     @returns True when valid
     """
     return bool(_SAFE_RUN_ID.match(run_id))
+
+
+def kill_memory_watch_pid(pid: int) -> None:
+    """
+    Stop a Memory Watch subprocess and its children.
+
+    Windows needs taskkill /T because npm.cmd leaves Playwright running.
+
+    @param pid: npm / node PID tracked for the run
+    @returns None
+    """
+    if not isinstance(pid, int) or pid <= 0:
+        return
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/PID", str(pid), "/T", "/F"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        return
+    os.kill(pid, signal.SIGTERM)

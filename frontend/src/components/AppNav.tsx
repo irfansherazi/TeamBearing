@@ -5,7 +5,8 @@
  *
  * Left navigation rail with:
  * - Brand logo + name
- * - Nav links: AI Review, Memory Watch, History
+ * - AI Review group: Run review, History, Review rules
+ * - Memory Watch
  * - Health status dot in footer
  * - Logout button in footer
  *
@@ -81,24 +82,48 @@ export function AppNav() {
 
       {/* Navigation Links */}
       <ul className="app-nav-links" role="list">
-        <AppNavLink
-          to="/"
-          icon="🔎"
-          label="AI Review"
-          title="AI Review"
-        />
-        <AppNavLink
-          to="/memory"
-          icon="🧠"
-          label="Memory Watch"
-          title="Memory Watch"
-        />
-        <AppNavLink
-          to="/history"
-          icon="📋"
-          label="History"
-          title="History"
-        />
+        <li className="app-nav-group">
+          <p className="app-nav-group-label" id="nav-ai-review-heading">AI Review</p>
+          <ul
+            className="app-nav-group-items"
+            role="list"
+            aria-labelledby="nav-ai-review-heading"
+          >
+            <AppNavLink
+              to="/"
+              icon="🔎"
+              label="Run review"
+              title="Run review"
+            />
+            <AppNavLink
+              to="/history"
+              icon="📋"
+              label="History"
+              title="History"
+            />
+            <AppNavLink
+              to="/review-rules"
+              icon="📘"
+              label="Review rules"
+              title="Review rules"
+            />
+          </ul>
+        </li>
+        <li className="app-nav-group">
+          <p className="app-nav-group-label" id="nav-memory-watch-heading">Memory Watch</p>
+          <ul
+            className="app-nav-group-items"
+            role="list"
+            aria-labelledby="nav-memory-watch-heading"
+          >
+            <AppNavLink
+              to="/memory"
+              icon="🧠"
+              label="Memory Watch"
+              title="Memory Watch"
+            />
+          </ul>
+        </li>
       </ul>
 
       {/* Footer: health + theme toggle + logout */}

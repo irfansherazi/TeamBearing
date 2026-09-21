@@ -63,9 +63,10 @@ describe('AppShell — layout structure', () => {
 });
 
 describe('AppShell — navigation integration', () => {
-  it('contains the AI Review nav link inside the shell', () => {
+  it('contains the AI Review nav links inside the shell', () => {
     renderShell();
-    expect(screen.getByRole('link', { name: /ai review/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /run review/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /review rules/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /memory watch/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^history$/i })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /run a test/i })).toBeNull();

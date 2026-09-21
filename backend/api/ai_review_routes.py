@@ -7,6 +7,9 @@ Endpoints
 ---------
   POST /ai-review/run                 — Spawn the command and stream via /ws/{run_id}
   POST /ai-review/run/{run_id}/stop   — SIGTERM the subprocess
+  GET  /ai-review/rules               — Checklist codes (CQ-01, F-01, …) for one app
+  POST /ai-review/rules/propose       — AI-gate a new rule idea (does not save)
+  POST /ai-review/rules               — Save a picked wording from a proposal
   GET  /ai-review/history             — List saved reviews (newest first)
   GET  /ai-review/history/{review_id} — One saved review (table + log)
 
@@ -31,6 +34,11 @@ from backend.api.schemas import (
     AiReviewHistoryItem,
     AiReviewRunRequest,
     AiReviewRunResponse,
+    ReviewRuleProposeRequest,
+    ReviewRuleProposeResponse,
+    ReviewRuleSaveRequest,
+    ReviewRuleSaveResponse,
+    ReviewRulesResponse,
     WSTerminalMessage,
 )
 from backend.engine.ai_review_runner import (
@@ -44,6 +52,9 @@ from backend.engine.ai_review_runner import (
     validate_commits,
     validate_git_ref,
 )
+from backend.engine.review_rule_additions import ReviewRuleIdeaError
+from backend.engine.review_rule_proposer import propose_review_rule, save_approved_review_rule
+from backend.engine.review_rules import ReviewRulesError, load_review_rules
 from backend.storage.ai_review_runs import ai_review_run_store
 
 logger = logging.getLogger(__name__)
@@ -52,6 +63,7 @@ ai_review_router = APIRouter(prefix="/ai-review", tags=["ai-review"])
 
 MAX_CONCURRENT_AI_REVIEWS = 1
 _REVIEW_ID_RE = re.compile(r"^ar-[a-f0-9]{8}$")
+_PROPOSAL_ID_RE = re.compile(r"^rp-[a-f0-9]{8}$")
 _ai_review_semaphore: asyncio.Semaphore | None = None
 _ai_review_pids: Dict[str, int] = {}
 _ai_review_force_released: set[str] = set()
@@ -221,6 +233,73 @@ async def stop_ai_review(run_id: str) -> dict:
     _ai_review_force_released.add(run_id)
     semaphore.release()
     return {"status": "stopped", "run_id": run_id}
+
+
+@ai_review_router.get(
+    "/rules",
+    response_model=ReviewRulesResponse,
+    summary="List AI Review checklist codes",
+)
+async def list_ai_review_rules(app: str = "platform") -> ReviewRulesResponse:
+    """
+    Return the PR checklist codes and plain-language explanations for one app.
+
+    @param app: platform (vsuitePlatform) or vcapi
+    @returns Grouped checklist rules
+    """
+    try:
+        payload = load_review_rules(app)
+    except AiReviewValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except ReviewRulesError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return ReviewRulesResponse.model_validate(payload)
+
+
+@ai_review_router.post(
+    "/rules/propose",
+    response_model=ReviewRuleProposeResponse,
+    summary="Check a new AI Review rule idea",
+)
+async def propose_ai_review_rule(body: ReviewRuleProposeRequest) -> ReviewRuleProposeResponse:
+    """
+    Hard-check then AI-gate a rule idea. Does not write the checklist.
+
+    @param body: App, section, idea
+    @returns Verdict plus optional wordings
+    """
+    try:
+        payload = await propose_review_rule(
+            body.app, body.section, body.other_section, body.idea
+        )
+    except ReviewRuleIdeaError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except AiReviewValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return ReviewRuleProposeResponse.model_validate(payload)
+
+
+@ai_review_router.post(
+    "/rules",
+    response_model=ReviewRuleSaveResponse,
+    summary="Save a picked AI Review rule wording",
+)
+async def save_ai_review_rule(body: ReviewRuleSaveRequest) -> ReviewRuleSaveResponse:
+    """
+    Save one wording from an accepted proposal.
+
+    @param body: Proposal id, wording index, and optional section switch
+    @returns Saved rule
+    """
+    if not _PROPOSAL_ID_RE.match(body.proposal_id):
+        raise HTTPException(status_code=422, detail="Invalid proposal id")
+    try:
+        saved = await save_approved_review_rule(
+            body.proposal_id, body.choice, body.use_suggested_section
+        )
+    except ReviewRuleIdeaError as extra:
+        raise HTTPException(status_code=400, detail=str(extra)) from extra
+    return ReviewRuleSaveResponse.model_validate(saved)
 
 
 @ai_review_router.get(

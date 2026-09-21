@@ -1,9 +1,12 @@
 import type { RefObject } from "react";
 import type { AiReviewTableRow } from "../lib/aiReviewTable";
-import type {
-  MemoryWatchFailureSummary,
-  MemoryWatchSample,
-  MemoryWatchVerdict,
+import {
+  formatFlowLabel,
+  formatMemoryRoundLabel,
+  formatMemorySampleStep,
+  type MemoryWatchFailureSummary,
+  type MemoryWatchSample,
+  type MemoryWatchVerdict,
 } from "../lib/memoryWatch";
 
 interface MemoryWatchResultsPanelProps {
@@ -16,6 +19,7 @@ interface MemoryWatchResultsPanelProps {
   emptyMessage: string;
   emptyLogMessage: string;
   showLog?: boolean;
+  flowId?: string;
   /** Best-effort phase/reason parsed from the log when the run died with no structured results. */
   failureSummary?: MemoryWatchFailureSummary | null;
   /** Collapse the raw log behind a disclosure — for saved/finished runs, not a live stream. */
@@ -25,7 +29,7 @@ interface MemoryWatchResultsPanelProps {
 /**
  * Heap table, checklist, optional video, and live log for Memory Watch.
  *
- * @param props - Samples, rows, log, and optional video URL
+ * @param props - Samples, rows, log, optional video, and flow id for step labels
  * @returns Results panel
  */
 export function MemoryWatchResultsPanel({
@@ -38,6 +42,7 @@ export function MemoryWatchResultsPanel({
   emptyMessage,
   emptyLogMessage,
   showLog = true,
+  flowId = "",
   failureSummary,
   collapsibleLog = false,
 }: MemoryWatchResultsPanelProps) {
@@ -69,12 +74,12 @@ export function MemoryWatchResultsPanel({
         <table className="step-table">
           <thead>
             <tr>
-              <th>Cycle</th>
-              <th>Step</th>
-              <th>Used heap (MB)</th>
-              <th>Δ from start</th>
+              <th>Round</th>
+              <th>What we measured</th>
+              <th>Heap size (MB)</th>
+              <th>Change from start</th>
               <th>GC</th>
-              <th>Status</th>
+              <th>Result</th>
             </tr>
           </thead>
           <tbody>
@@ -85,8 +90,8 @@ export function MemoryWatchResultsPanel({
             ) : (
               samples.map((sample) => (
                 <tr key={`mw-cycle-${sample.cycle}`} id={`mw-cycle-${sample.cycle}`}>
-                  <td>{sample.cycle === 0 ? "0 (start)" : String(sample.cycle)}</td>
-                  <td>{sample.label || "—"}</td>
+                  <td>{formatMemoryRoundLabel(sample.cycle)}</td>
+                  <td>{formatMemorySampleStep(flowId, sample)}</td>
                   <td>{sample.usedMb.toFixed(2)}</td>
                   <td>
                     {sample.cycle === 0

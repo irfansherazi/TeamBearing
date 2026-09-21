@@ -2,7 +2,7 @@
  * MemoryWatchHistoryPage tests
  */
 
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryWatchHistoryPage } from "../MemoryWatchHistoryPage";
@@ -71,6 +71,7 @@ describe("MemoryWatchHistoryPage — saved runs", () => {
     renderPage();
     expect(await screen.findByText("mw-abc12345")).toBeInTheDocument();
     expect(screen.getByText(/production orders/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^stop$/i })).toBeNull();
   });
 
   it("opens detail from a row click", async () => {
@@ -114,6 +115,47 @@ describe("MemoryWatchHistoryPage — saved runs", () => {
     fireEvent.click(await screen.findByText("mw-abc12345"));
     expect(await screen.findByText("HEAP")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();
+    expect(screen.getByText(/steps that ran/i)).toBeInTheDocument();
+    expect(screen.getByText(/open production orders/i)).toBeInTheDocument();
+  });
+
+  it("shows Stop on a running row and POSTs stop without opening detail", async () => {
+    const runningItem = {
+      ...historyItem,
+      status: "running",
+      verdict_pass: null,
+      finished_at: null,
+    };
+    vi.mocked(authenticatedFetch).mockImplementation((url: string, options?: RequestInit) => {
+      const href = String(url);
+      if (href.endsWith("/memory-watch/history")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([runningItem]),
+        } as Response);
+      }
+      if (href.endsWith(`/memory-watch/run/${runningItem.run_id}/stop`)) {
+        expect(options?.method).toBe("POST");
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ status: "stopped", run_id: runningItem.run_id }),
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ ...runningItem, samples: [], rows: [], log_text: "" }),
+      } as Response);
+    });
+    renderPage();
+    const stopButton = await screen.findByRole("button", { name: /^stop$/i });
+    fireEvent.click(stopButton);
+    expect(screen.queryByRole("heading", { name: /memory watch mw-abc12345/i })).toBeNull();
+    await waitFor(() => {
+      expect(authenticatedFetch).toHaveBeenCalledWith(
+        expect.stringMatching(/\/memory-watch\/run\/mw-abc12345\/stop$/),
+        expect.objectContaining({ method: "POST" })
+      );
+    });
   });
 
   it("shows a readable failure summary when a run has no samples or rows", async () => {

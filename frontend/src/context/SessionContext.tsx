@@ -123,6 +123,7 @@ export function SessionProvider({ children }: SessionProviderProps): JSX.Element
 
   // Track whether the component is mounted to avoid state updates after unmount.
   const mountedRef = useRef<boolean>(true);
+  const sessionIdRef = useRef<string | null>(null);
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -148,6 +149,7 @@ export function SessionProvider({ children }: SessionProviderProps): JSX.Element
       const data: SessionStartResponse = await startSession(currentToken);
       if (!mountedRef.current) return;
       setSessionId(data.session_id);
+      sessionIdRef.current = data.session_id;
       setNovncUrl(data.novnc_url);
       setDisplayNum(data.display_num);
       setNextRebindBy(data.next_rebind_by);
@@ -165,8 +167,12 @@ export function SessionProvider({ children }: SessionProviderProps): JSX.Element
     }
   }, [auth.ssoToken]);
 
-  // Bootstrap on mount (and when auth.ssoToken changes after a refresh).
+  // Bootstrap on mount. Skip when a session is already attached so SSO token
+  // rotation (every 15s) does not tear down /ws/session and reload the page.
   useEffect(() => {
+    if (sessionIdRef.current) {
+      return;
+    }
     void bootstrap();
   }, [bootstrap]);
 

@@ -10,6 +10,7 @@ import {
     isStrictlyIncreasing,
     toHeapSamples,
 } from '../../playwright/memory/lib/verdict';
+import { flowNeedsWarmup } from '../../playwright/memory/constants';
 
 const increaseCases = [
     {
@@ -105,6 +106,31 @@ describe('evaluateRitualVerdict', () => {
     ritualCases.forEach(({ description, setup, expectations }) => {
         it(description, () => {
             expectations(evaluateRitualVerdict(setup()));
+        });
+    });
+});
+
+const warmupCases = [
+    {
+        description: 'warms po-open-spot-warm before baseline',
+        setup: () => 'po-open-spot-warm' as const,
+        expectations: (result: boolean) => {
+            expect(result).toBe(true);
+        },
+    },
+    {
+        description: 'does not warm the dashboard-baseline po-open-spot flow',
+        setup: () => 'po-open-spot' as const,
+        expectations: (result: boolean) => {
+            expect(result).toBe(false);
+        },
+    },
+];
+
+describe('flowNeedsWarmup', () => {
+    warmupCases.forEach(({ description, setup, expectations }) => {
+        it(description, () => {
+            expectations(flowNeedsWarmup(setup()));
         });
     });
 });

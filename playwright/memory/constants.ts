@@ -19,6 +19,7 @@ export const RITUAL_FIRST_GHOST_FALLBACKS = ['Demo Production Director', 'DemoPr
 export const FLOW_IDS = [
     'qo-open-close-snapshot',
     'po-open-spot',
+    'po-open-spot-warm',
     'po-search-panel',
     'ai-intake-open-close',
     'sidebar-open-close',
@@ -27,9 +28,20 @@ export const FLOW_IDS = [
 export type MemoryFlowId = (typeof FLOW_IDS)[number];
 export type MemoryEnv = (typeof ALLOWED_ENVS)[number];
 
+/**
+ * True when this flow must load its heavy page before the baseline sample.
+ *
+ * @param flowId - Recipe id
+ * @returns Whether warmup runs before baseline
+ */
+export function flowNeedsWarmup(flowId: MemoryFlowId): boolean {
+    return flowId === 'po-open-spot-warm';
+}
+
 export const FLOW_LABELS: Record<MemoryFlowId, string> = {
     'qo-open-close-snapshot': 'Production Orders — Quick Order open/close snapshots',
     'po-open-spot': 'Production Orders — open and close spot',
+    'po-open-spot-warm': 'Production Orders — open/close after list is loaded',
     'po-search-panel': 'Production Orders — open and close search panel',
     'ai-intake-open-close': 'AI Intake — open and leave',
     'sidebar-open-close': 'Production Orders — open and close sidebar',
@@ -55,6 +67,14 @@ export const FLOW_PREVIEW_STEPS: Record<MemoryFlowId, string[]> = {
         'Return to the list',
         'Force GC and take a snapshot',
         'Repeat for the cycle count',
+    ],
+    'po-open-spot-warm': [
+        'Open Production Orders and wait for the list (not measured)',
+        'Take the baseline snapshot on the loaded list',
+        'Open the first spot',
+        'Return to the list',
+        'Force GC and take a snapshot',
+        'Repeat open/close for the cycle count',
     ],
     'po-search-panel': [
         'Open Production Orders',

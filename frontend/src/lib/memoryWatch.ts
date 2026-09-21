@@ -10,6 +10,7 @@ import {
 export type MemoryWatchFlowId =
   | "qo-open-close-snapshot"
   | "po-open-spot"
+  | "po-open-spot-warm"
   | "po-search-panel"
   | "ai-intake-open-close"
   | "sidebar-open-close";
@@ -56,6 +57,7 @@ export interface MemoryWatchHistoryDetail extends MemoryWatchHistoryItem {
 export const FLOW_OPTIONS: { id: MemoryWatchFlowId; label: string }[] = [
   { id: "qo-open-close-snapshot", label: "Production Orders — Quick Order open/close snapshots" },
   { id: "po-open-spot", label: "Production Orders — open and close spot" },
+  { id: "po-open-spot-warm", label: "Production Orders — open/close after list is loaded" },
   { id: "po-search-panel", label: "Production Orders — open and close search" },
   { id: "ai-intake-open-close", label: "AI Intake — open and leave" },
   { id: "sidebar-open-close", label: "Production Orders — open and close sidebar" },
@@ -88,6 +90,14 @@ const FLOW_PREVIEW_STEPS: Record<MemoryWatchFlowId, string[]> = {
     "Return to the list",
     "Force GC and take a snapshot",
     "Repeat for the cycle count",
+  ],
+  "po-open-spot-warm": [
+    "Open Production Orders and wait for the list (not measured)",
+    "Take the baseline snapshot on the loaded list",
+    "Open the first spot",
+    "Return to the list",
+    "Force GC and take a snapshot",
+    "Repeat open/close for the cycle count",
   ],
   "po-search-panel": [
     "Open Production Orders",
@@ -151,6 +161,7 @@ export function getFlowPreviewSteps(flowId: string): string[] {
   switch (flowId) {
     case "qo-open-close-snapshot":
     case "po-open-spot":
+    case "po-open-spot-warm":
     case "po-search-panel":
     case "ai-intake-open-close":
     case "sidebar-open-close":
@@ -236,6 +247,57 @@ export function upsertMemorySample(
   const updated = [...samples];
   updated[index] = next;
   return updated;
+}
+
+/**
+ * Keep the last sample for each cycle (retries rewrite the same cycle numbers).
+ *
+ * @param samples - Raw samples, possibly including retries
+ * @returns One row per cycle, last write wins
+ */
+export function latestSamplesByCycle(samples: MemoryWatchSample[]): MemoryWatchSample[] {
+  return samples.reduce(
+    (acc, sample) => upsertMemorySample(acc, sample),
+    [] as MemoryWatchSample[]
+  );
+}
+
+/**
+ * Round number shown in the results table.
+ *
+ * @param cycle - 0-based sample index
+ * @returns Start, or Round N
+ */
+export function formatMemoryRoundLabel(cycle: number): string {
+  if (cycle === 0) {
+    return "Start";
+  }
+  return `Round ${cycle}`;
+}
+
+/**
+ * What was measured at this sample.
+ *
+ * @param flowId - Flow recipe id
+ * @param sample - Heap sample
+ * @returns Short description
+ */
+export function formatMemorySampleStep(flowId: string, sample: MemoryWatchSample): string {
+  const raw = (sample.label || "").trim();
+  if (raw && raw !== "baseline" && !/^cycle-\d+$/i.test(raw)) {
+    return raw;
+  }
+  if (sample.cycle === 0) {
+    switch (flowId) {
+      case "po-open-spot-warm":
+        return "Start — list already loaded";
+      case "po-open-spot":
+        return "Start — dashboard";
+      default:
+        return "Start";
+    }
+  }
+  return `After open/close round ${sample.cycle}`;
 }
 
 /**
@@ -327,8 +389,8 @@ export interface MemoryWatchFailureSummary {
  * printed on nearly every run and must not outrank the real failure site.
  */
 const FAILURE_PHASE_PATTERNS: { phase: string; pattern: RegExp }[] = [
-  { phase: "Login / session", pattern: /at login \(|loginHelper\.mjs|Session expired or not logged in|Falling back to manual login/i },
-  { phase: "Ghost login", pattern: /ghost picker|ghostLogin|Could not ghost as/i },
+  { phase: "Login / session", pattern: /at login \(|loginHelper\.mjs|Session expired or not logged in|Falling back to manual login|Login form never appeared|Memory Watch login did not reach|did not leave the login form|Login failed:|Login requires MFA/i },
+  { phase: "Ghost login", pattern: /ghost picker|ghostLogin|Could not ghost as|Ghost panel missing|ghost-panel-input/i },
   { phase: "Quick Order flow steps", pattern: /Quick Order details did not open|No 1-spot Quick Order|No 5-spot or larger Quick Order|openMatchingQuickOrder/i },
   { phase: "Flow steps", pattern: /FLOW error|runFlowCycle/i },
   { phase: "Heap capture", pattern: /HeapProfiler|captureMetrics/i },

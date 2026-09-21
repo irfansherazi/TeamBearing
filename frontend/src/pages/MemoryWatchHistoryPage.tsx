@@ -9,6 +9,8 @@ import { MemoryWatchResultsPanel } from "../components/MemoryWatchResultsPanel";
 import {
   formatFlowLabel,
   formatMemoryWhen,
+  getFlowPreviewSteps,
+  latestSamplesByCycle,
   memoryOutcomeLabel,
   memoryRunStatusClass,
   parseMemoryChecklistFromLog,
@@ -33,6 +35,7 @@ export function MemoryWatchHistoryPage() {
   const [samples, setSamples] = useState<MemoryWatchSample[]>([]);
   const [verdict, setVerdict] = useState<MemoryWatchVerdict | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [stoppingIds, setStoppingIds] = useState<string[]>([]);
   const destroyedRef = useRef(false);
   const videoObjectUrlRef = useRef<string | null>(null);
 
@@ -70,7 +73,24 @@ export function MemoryWatchHistoryPage() {
         if (destroyedRef.current) {
           return;
         }
-        setHistory(Array.isArray(items) ? items : []);
+        const nextHistory = Array.isArray(items) ? items : [];
+        setHistory(nextHistory);
+        setDetail((prev) => {
+          if (prev === null) {
+            return prev;
+          }
+          const listed = nextHistory.find((item) => item.run_id === prev.run_id);
+          if (!listed || listed.status === prev.status) {
+            return prev;
+          }
+          return {
+            ...prev,
+            status: listed.status,
+            finished_at: listed.finished_at,
+            verdict_pass: listed.verdict_pass,
+            growth_mb: listed.growth_mb,
+          };
+        });
       })
       .catch(() => {
         if (destroyedRef.current) {
@@ -88,6 +108,49 @@ export function MemoryWatchHistoryPage() {
       revokeVideo();
     };
   }, [loadHistory, revokeVideo]);
+
+  const hasRunning = history.some((item) => item.status === "running");
+
+  useEffect(() => {
+    if (!hasRunning) {
+      return;
+    }
+    const timerId = window.setInterval(() => {
+      loadHistory();
+    }, 4000);
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [hasRunning, loadHistory]);
+
+  /**
+   * Stop a running Memory Watch process from History.
+   *
+   * @param runId - Dashboard run id
+   * @returns void
+   */
+  const handleStop = (runId: string) => {
+    if (stoppingIds.includes(runId)) {
+      return;
+    }
+    setStoppingIds((prev) => [...prev, runId]);
+    authenticatedFetch(`${API_BASE_URL}/memory-watch/run/${runId}/stop`, {
+      method: "POST",
+    })
+      .then(() => {
+        if (destroyedRef.current) {
+          return;
+        }
+        loadHistory();
+      })
+      .catch(() => undefined)
+      .then(() => {
+        if (destroyedRef.current) {
+          return;
+        }
+        setStoppingIds((prev) => prev.filter((id) => id !== runId));
+      });
+  };
 
   /**
    * Open a saved run's heap table and log.
@@ -111,7 +174,7 @@ export function MemoryWatchHistoryPage() {
           return;
         }
         setDetail(item);
-        setSamples(item.samples ?? []);
+        setSamples(latestSamplesByCycle(item.samples ?? []));
         setRows(
           item.rows?.length
             ? item.rows
@@ -191,6 +254,17 @@ export function MemoryWatchHistoryPage() {
                 Back
               </button>
               <h2>Memory Watch {detail.run_id}</h2>
+              {detail.status === "running" ? (
+                <button
+                  id="mw-hist-detail-stop"
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => handleStop(detail.run_id)}
+                  disabled={stoppingIds.includes(detail.run_id)}
+                >
+                  {stoppingIds.includes(detail.run_id) ? "Stopping…" : "Stop"}
+                </button>
+              ) : null}
             </div>
           </div>
           <div className="ai-review-detail-body">
@@ -204,16 +278,35 @@ export function MemoryWatchHistoryPage() {
                 <dd>{detail.env}</dd>
               </div>
               <div className="ai-review-detail-field">
-                <dt>Cycles</dt>
+                <dt>Open/close rounds</dt>
                 <dd>{detail.cycles}</dd>
               </div>
             </dl>
+            {getFlowPreviewSteps(detail.flow).length > 0 ? (
+              <div className="ai-review-detail-field mw-hist-steps">
+                <p id="mw-hist-steps-label" className="mw-steps-heading">
+                  Steps that ran
+                </p>
+                <ol
+                  id="mw-hist-steps-list"
+                  className="mw-steps-list"
+                  aria-labelledby="mw-hist-steps-label"
+                >
+                  {getFlowPreviewSteps(detail.flow).map((step, index) => (
+                    <li key={`${detail.flow}-${index}`} id={`mw-hist-step-${index}`}>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
           </div>
         </div>
         <MemoryWatchResultsPanel
           samples={samples}
           rows={rows}
           verdict={verdict}
+          flowId={detail.flow}
           logLines={detail.log_text ? detail.log_text.split("\n") : []}
           videoUrl={videoUrl}
           emptyMessage="No heap samples saved."
@@ -245,6 +338,7 @@ export function MemoryWatchHistoryPage() {
                   <th>When</th>
                   <th>Flow</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -265,6 +359,23 @@ export function MemoryWatchHistoryPage() {
                       <span className={memoryRunStatusClass(item.status)}>
                         {memoryOutcomeLabel(item)}
                       </span>
+                    </td>
+                    <td className="ai-review-hist-actions">
+                      {item.status === "running" ? (
+                        <button
+                          id={`mw-hist-stop-${item.run_id}`}
+                          type="button"
+                          className="btn-secondary ai-review-hist-stop"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            handleStop(item.run_id);
+                          }}
+                          disabled={stoppingIds.includes(item.run_id)}
+                        >
+                          {stoppingIds.includes(item.run_id) ? "Stopping…" : "Stop"}
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

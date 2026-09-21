@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       getToken: () => authStorage.getSsoToken(),
       setToken: (token: string) => {
         authStorage.setSsoToken(token);
-        setState(prev => ({ ...prev, ssoToken: token }));
+        setState((prev) => (prev.ssoToken === token ? prev : { ...prev, ssoToken: token }));
       },
       onSessionInvalid: () => logout(),
     });

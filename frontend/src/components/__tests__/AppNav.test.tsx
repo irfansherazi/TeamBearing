@@ -2,7 +2,7 @@
  * AppNav Tests — vReview
  *
  * Covers:
- *   Left nav rail with brand "vReview" and "AI Review" + "History" links.
+ *   Left nav rail with brand "vReview", AI Review group links, Memory Watch.
  *   No leftover vQA screens (Run a Test, Test History, Playwright Suite).
  */
 
@@ -33,26 +33,56 @@ function renderNav(initialPath = '/') {
   );
 }
 
+const navLinkCases = [
+  {
+    description: 'renders "Run review" nav link to home',
+    setup: () => '/',
+    expectations: () => {
+      const link = screen.getByRole('link', { name: /run review/i });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', '/');
+    },
+  },
+  {
+    description: 'renders "History" nav link under AI Review',
+    setup: () => '/',
+    expectations: () => {
+      const link = screen.getByRole('link', { name: /^history$/i });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', '/history');
+    },
+  },
+  {
+    description: 'renders "Review rules" nav link',
+    setup: () => '/',
+    expectations: () => {
+      const link = screen.getByRole('link', { name: /review rules/i });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', '/review-rules');
+    },
+  },
+  {
+    description: 'renders "Memory Watch" nav link',
+    setup: () => '/',
+    expectations: () => {
+      const link = screen.getByRole('link', { name: /memory watch/i });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', '/memory');
+    },
+  },
+];
+
 describe('AppNav — navigation items', () => {
-  it('renders "AI Review" nav link to home', () => {
-    renderNav('/');
-    const link = screen.getByRole('link', { name: /ai review/i });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/');
+  navLinkCases.forEach(({ description, setup, expectations }) => {
+    it(description, () => {
+      renderNav(setup());
+      expectations();
+    });
   });
 
-  it('renders "Memory Watch" nav link', () => {
+  it('renders the AI Review group heading', () => {
     renderNav('/');
-    const link = screen.getByRole('link', { name: /memory watch/i });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/memory');
-  });
-
-  it('renders "History" nav link', () => {
-    renderNav('/');
-    const link = screen.getByRole('link', { name: /^history$/i });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/history');
+    expect(screen.getByText(/^ai review$/i)).toBeInTheDocument();
   });
 
   it('does not render leftover vQA nav links', () => {
@@ -69,15 +99,21 @@ describe('AppNav — navigation items', () => {
 });
 
 describe('AppNav — active state', () => {
-  it('marks "AI Review" as active when at root path', () => {
+  it('marks "Run review" as active when at root path', () => {
     renderNav('/');
-    const link = screen.getByRole('link', { name: /ai review/i });
+    const link = screen.getByRole('link', { name: /run review/i });
     expect(link.classList.contains('active') || link.getAttribute('aria-current') === 'page').toBe(true);
   });
 
   it('marks "History" as active when at /history', () => {
     renderNav('/history');
     const link = screen.getByRole('link', { name: /^history$/i });
+    expect(link.classList.contains('active') || link.getAttribute('aria-current') === 'page').toBe(true);
+  });
+
+  it('marks "Review rules" as active when at /review-rules', () => {
+    renderNav('/review-rules');
+    const link = screen.getByRole('link', { name: /review rules/i });
     expect(link.classList.contains('active') || link.getAttribute('aria-current') === 'page').toBe(true);
   });
 });

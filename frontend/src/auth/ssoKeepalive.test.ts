@@ -82,6 +82,24 @@ describe('ssoKeepalive', () => {
     keepalive.stop();
   });
 
+  it('does not call setToken when the refresh returns the same token', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ ssoToken: 'current-sso-token' }),
+    });
+
+    const keepalive = createKeepalive();
+    keepalive.start();
+
+    await vi.advanceTimersByTimeAsync(15_000);
+
+    expect(setToken).not.toHaveBeenCalled();
+    expect(onSessionInvalid).not.toHaveBeenCalled();
+
+    keepalive.stop();
+  });
+
   // --- AC-ERROR-1: Network/temporary errors preserve token and continue interval ---
   it('network failure does not clear the token', async () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));

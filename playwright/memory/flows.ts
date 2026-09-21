@@ -14,6 +14,7 @@ import {
     SEARCH_PANEL_SELECTOR,
     SIDEBAR_SELECTOR,
     SPOT_ROW_SELECTOR,
+    flowNeedsWarmup,
     type MemoryFlowId,
 } from './constants';
 
@@ -153,6 +154,20 @@ async function runSidebar(page: Page): Promise<void> {
 }
 
 /**
+ * Load the page that this flow will measure, so baseline is not the dashboard.
+ *
+ * @param page - Playwright page
+ * @param flowId - Recipe id
+ * @returns void
+ */
+export async function warmupFlow(page: Page, flowId: MemoryFlowId): Promise<void> {
+    if (!flowNeedsWarmup(flowId)) {
+        return;
+    }
+    await goToProductionOrders(page);
+}
+
+/**
  * Run one open/use/close cycle for a named Memory Watch flow.
  *
  * @param page - Playwright page
@@ -164,6 +179,7 @@ export async function runFlowCycle(page: Page, flowId: MemoryFlowId): Promise<vo
         case 'qo-open-close-snapshot':
             throw new Error('qo-open-close-snapshot must run via runQoOpenCloseRitual');
         case 'po-open-spot':
+        case 'po-open-spot-warm':
             await runPoOpenSpot(page);
             return;
         case 'po-search-panel':

@@ -176,9 +176,17 @@ export async function login(page, username, password, baseURL) {
     //Debug Pause
     if (process.env.PWDEBUG === '1') await page.pause();
 
-    await loginFormIndicator.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
-    await page.fill('input[name="username"]', loginEmail);
-    await page.fill('input[name="password"]', password);
+    const usernameField = page.locator('#username');
+    if (!(await usernameField.isVisible({ timeout: 5000 }).catch(() => false))) {
+        const loginUrl = `${String(baseURL || '').replace(/\/$/, '')}/#/login`;
+        console.log(`🔑 Opening login page: ${loginUrl}`);
+        await page.goto(loginUrl, { timeout: 30000, waitUntil: 'domcontentloaded' });
+    }
+    const loginLoaderEarly = page.locator('#loader, #loader-wrapper, app-v-loader').first();
+    await loginLoaderEarly.waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
+    await usernameField.waitFor({ state: 'visible', timeout: 30000 });
+    await usernameField.fill(loginEmail);
+    await page.locator('#password').fill(password);
 
     // Wait for any loading overlay to clear before clicking submit — div#loader intercepts clicks.
     // waitFor('hidden') resolves immediately if the element doesn't exist or is already hidden.

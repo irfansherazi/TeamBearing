@@ -669,6 +669,85 @@ class AiReviewHistoryDetail(AiReviewHistoryItem):
     log_text: str = ""
 
 
+class ReviewRuleItem(BaseModel):
+    """
+    One AI Review checklist code for the Review rules page.
+    """
+
+    id: str
+    plain: str
+    rule: str
+
+
+class ReviewRuleSection(BaseModel):
+    """
+    One verification-area heading plus its checklist codes.
+    """
+
+    name: str
+    rules: list[ReviewRuleItem] = Field(default_factory=list)
+
+
+class ReviewRulesResponse(BaseModel):
+    """
+    Parsed PR review checklist for one app (platform or vcapi).
+    """
+
+    app: str
+    label: str
+    source: str
+    sections: list[ReviewRuleSection] = Field(default_factory=list)
+
+
+class ReviewRuleProposeRequest(BaseModel):
+    """Body for POST /ai-review/rules/propose."""
+
+    app: str = Field(default="platform", description="platform or vcapi")
+    section: str = Field(..., description="Existing section heading, or __other__")
+    other_section: str = Field(default="", description="Name when section is Other")
+    idea: str = Field(..., description="What the new rule should check")
+
+
+class ReviewRuleSuggestion(BaseModel):
+    """One AI-rewritten wording the user can save."""
+
+    id: str
+    wording: str
+    plain: str
+
+
+class ReviewRuleProposeResponse(BaseModel):
+    """LLM gate result. proposal_id is set only on accept."""
+
+    verdict: str
+    reason: str
+    overlap_ids: list[str] = Field(default_factory=list)
+    proposal_id: str | None = None
+    assigned_id: str | None = None
+    section: str = ""
+    suggested_section: str = ""
+    suggested_id: str | None = None
+    suggestions: list[ReviewRuleSuggestion] = Field(default_factory=list)
+
+
+class ReviewRuleSaveRequest(BaseModel):
+    """Body for POST /ai-review/rules. Must follow a successful propose."""
+
+    proposal_id: str
+    choice: int = Field(..., ge=0, le=1)
+    use_suggested_section: bool = False
+
+
+class ReviewRuleSaveResponse(BaseModel):
+    """The rule that was written to the checklist."""
+
+    id: str
+    section: str
+    plain: str
+    rule: str
+    app: str
+
+
 class MemoryWatchRunRequest(BaseModel):
     """Request body for POST /memory-watch/run."""
 

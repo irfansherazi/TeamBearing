@@ -4,6 +4,7 @@
 
 import type { CDPSession, Locator, Page } from '@playwright/test';
 import { ghostLogin, isGhostAvailable } from '../utils/prf/GhostLoginHelper';
+import { ghostViaAngularPanel, isAngularGhostAvailable } from './lib/angularGhost';
 import {
     DEFAULT_GC_PASSES,
     DETAILS_SELECTOR,
@@ -173,15 +174,23 @@ async function snapshotAfterClose(
  * @returns void
  */
 async function ghostAsOneOf(page: Page, names: string[]): Promise<void> {
-    if (!(await isGhostAvailable(page))) {
+    const angularGhost = await isAngularGhostAvailable(page);
+    const phpGhost = angularGhost ? false : await isGhostAvailable(page);
+    if (!angularGhost && !phpGhost) {
         throw new Error(
-            'Ghost picker is missing. Log in as Admin first so Demo Prod Dir and Suzan Goritz can be ghosted.'
+            'Ghost picker is missing. Log in as a vCreative admin (firm_id 1), e.g. syed@vcreativeinc.com.'
         );
     }
     let lastError = '';
     for (const name of names) {
         try {
-            await ghostLogin(page, name);
+            if (angularGhost) {
+                await ghostViaAngularPanel(page, name);
+            } else {
+                await ghostLogin(page, name);
+            }
+            await page.goto(PO_LIST_PATH, { waitUntil: 'domcontentloaded' });
+            await page.waitForTimeout(SETTLE_MS);
             return;
         } catch (err: unknown) {
             lastError = err instanceof Error ? err.message : String(err);
@@ -224,7 +233,7 @@ async function runPersonaSnapshots(
 /**
  * Run the Production Orders Quick Order memory ritual (two ghost users).
  *
- * @param page - Playwright page already logged in as Admin
+ * @param page - Playwright page already logged in as a vCreative admin
  * @returns Heap points and flow status
  */
 export async function runQoOpenCloseRitual(page: Page): Promise<RitualRunResult> {

@@ -10,7 +10,6 @@ import asyncio
 import contextlib
 import logging
 import os
-import signal
 import uuid
 from pathlib import Path
 from typing import Dict
@@ -31,6 +30,7 @@ from backend.engine.memory_watch_runner import (
     MemoryWatchValidationError,
     build_memory_watch_argv,
     is_memory_watch_run_id,
+    kill_memory_watch_pid,
     parse_memory_report_line,
     parse_memory_sample_line,
     parse_memory_verdict_line,
@@ -151,28 +151,34 @@ async def run_memory_watch(request: MemoryWatchRunRequest) -> MemoryWatchRunResp
 )
 async def stop_memory_watch(run_id: str) -> dict:
     """
-    SIGTERM the tracked subprocess for this run_id.
+    Kill the tracked subprocess tree and mark the history row stopped.
 
     @param run_id: Active run id
     @returns status payload
     """
-    pid = _memory_watch_pids.get(run_id)
-    if pid is None:
-        raise HTTPException(status_code=404, detail=f"No active Memory Watch for run_id='{run_id}'")
+    safe_id = _require_run_id(run_id)
+    item = memory_watch_run_store.get_run(safe_id)
+    pid = _memory_watch_pids.get(safe_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail=f"No active Memory Watch for run_id='{safe_id}'")
+    if item.get("status") != "running" and pid is None:
+        raise HTTPException(status_code=404, detail=f"No active Memory Watch for run_id='{safe_id}'")
 
-    _memory_watch_stopped.add(run_id)
-    try:
-        os.kill(pid, signal.SIGTERM)
-        logger.info("[%s] SIGTERM sent to PID %d", run_id, pid)
-    except ProcessLookupError:
-        logger.debug("[%s] PID %d already exited", run_id, pid)
-    except Exception as exc:
-        logger.warning("[%s] Could not SIGTERM PID %d: %s", run_id, pid, exc)
+    _memory_watch_stopped.add(safe_id)
+    if pid is not None:
+        try:
+            kill_memory_watch_pid(pid)
+            logger.info("[%s] Stop sent to PID %d", safe_id, pid)
+        except ProcessLookupError:
+            logger.debug("[%s] PID %d already exited", safe_id, pid)
+        except Exception as exc:
+            logger.warning("[%s] Could not stop PID %d: %s", safe_id, pid, exc)
+        semaphore = _get_semaphore()
+        _memory_watch_force_released.add(safe_id)
+        semaphore.release()
 
-    semaphore = _get_semaphore()
-    _memory_watch_force_released.add(run_id)
-    semaphore.release()
-    return {"status": "stopped", "run_id": run_id}
+    memory_watch_run_store.mark_stopped(safe_id)
+    return {"status": "stopped", "run_id": safe_id}
 
 
 @memory_watch_router.get(
@@ -402,7 +408,7 @@ async def cleanup_memory_watch_processes() -> None:
         return
     for run_id, pid in list(_memory_watch_pids.items()):
         try:
-            os.kill(pid, signal.SIGTERM)
+            kill_memory_watch_pid(pid)
         except (ProcessLookupError, OSError):
             pass
     _memory_watch_pids.clear()

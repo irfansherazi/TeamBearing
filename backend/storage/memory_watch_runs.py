@@ -219,6 +219,27 @@ class MemoryWatchRunStore:
             )
             return [_list_item_from_row(row) for row in cursor.fetchall()]
 
+    def mark_stopped(self, run_id: str) -> bool:
+        """
+        Mark a running row stopped so History can leave the in-progress state.
+
+        @param run_id: Dashboard run id
+        @returns True when a running row was updated
+        """
+        finished_at = _utc_now()
+        with self._lock:
+            with sqlite3.connect(str(self._db_path)) as conn:
+                cursor = conn.execute(
+                    """
+                    UPDATE memory_watch_runs
+                    SET status = 'stopped', finished_at = ?
+                    WHERE run_id = ? AND status = 'running'
+                    """,
+                    (finished_at, run_id),
+                )
+                conn.commit()
+                return cursor.rowcount > 0
+
     def get_run(self, run_id: str) -> Optional[dict[str, Any]]:
         """
         Return one run including samples, checklist rows, and log.
