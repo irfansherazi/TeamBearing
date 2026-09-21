@@ -18,32 +18,35 @@
 
 import { useTheme } from '../hooks/useTheme';
 
+interface ThemeToggleProps {
+  compact?: boolean;
+}
+
 /**
  * ThemeToggle — Icon button for switching between light and dark mode.
  *
- * Uses the useTheme hook as its single source of truth.
- * The data-theme attribute on <html> is set by the hook, making the
- * change immediate and all-encompassing without prop drilling.
+ * @param props - compact hides the Light/Dark text for the page header
+ * @returns Theme switch control
  */
-export function ThemeToggle() {
+export function ThemeToggle({ compact = false }: ThemeToggleProps) {
   const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
 
   return (
     <button
-      id="theme-toggle-btn"
-      className="theme-toggle-btn"
+      id={compact ? "theme-toggle-header-btn" : "theme-toggle-btn"}
+      className={`theme-toggle-btn${compact ? " theme-toggle-btn--icon" : ""}`}
       onClick={toggleTheme}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
       type="button"
     >
-      <span aria-hidden="true" style={{ fontSize: '16px' }}>
-        {isDark ? '☀️' : '🌙'}
+      <span aria-hidden="true" className="theme-toggle-glyph">
+        {isDark ? "☀" : "☾"}
       </span>
-      <span className="theme-toggle-label">
-        {isDark ? 'Light' : 'Dark'}
-      </span>
+      {compact ? null : (
+        <span className="theme-toggle-label">{isDark ? "Light" : "Dark"}</span>
+      )}
     </button>
   );
 }

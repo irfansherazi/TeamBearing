@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import { authenticatedFetch } from "../api_client";
+import { AppPage } from "../components/AppPage";
 import { MemoryWatchResultsPanel } from "../components/MemoryWatchResultsPanel";
 import {
   formatFlowLabel,
@@ -241,32 +242,34 @@ export function MemoryWatchHistoryPage() {
 
   if (detail) {
     return (
-      <div className="ai-review-page">
-        <div className="panel ai-review-history">
-          <div className="panel-header">
-            <div className="ai-review-history-header">
+      <AppPage
+        title={`Memory Watch ${detail.run_id}`}
+        subtitle="Saved heap samples, steps, and log for this run."
+        actions={
+          <>
+            <button
+              id="mw-hist-back"
+              type="button"
+              className="btn-ghost"
+              onClick={handleBackToList}
+            >
+              Back
+            </button>
+            {detail.status === "running" ? (
               <button
-                id="mw-hist-back"
+                id="mw-hist-detail-stop"
                 type="button"
-                className="btn-back"
-                onClick={handleBackToList}
+                className="btn-ghost"
+                onClick={() => handleStop(detail.run_id)}
+                disabled={stoppingIds.includes(detail.run_id)}
               >
-                Back
+                {stoppingIds.includes(detail.run_id) ? "Stopping…" : "Stop"}
               </button>
-              <h2>Memory Watch {detail.run_id}</h2>
-              {detail.status === "running" ? (
-                <button
-                  id="mw-hist-detail-stop"
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => handleStop(detail.run_id)}
-                  disabled={stoppingIds.includes(detail.run_id)}
-                >
-                  {stoppingIds.includes(detail.run_id) ? "Stopping…" : "Stop"}
-                </button>
-              ) : null}
-            </div>
-          </div>
+            ) : null}
+          </>
+        }
+      >
+        <div className="app-card">
           <div className="ai-review-detail-body">
             <dl className="ai-review-detail-meta">
               <div className="ai-review-detail-field">
@@ -314,19 +317,21 @@ export function MemoryWatchHistoryPage() {
           failureSummary={failureSummary}
           collapsibleLog
         />
-      </div>
+      </AppPage>
     );
   }
 
   return (
-    <div className="ai-review-page">
-      <div className="panel ai-review-history">
-        <div className="panel-header">
-          <h2>Memory Watch history</h2>
-          <Link id="mw-hist-new" className="btn-secondary" to="/memory">
-            New check
-          </Link>
-        </div>
+    <AppPage
+      title="Memory Watch history"
+      subtitle="Open a saved heap check to see samples, video, and the log."
+      actions={
+        <Link id="mw-hist-new" className="btn-ghost" to="/memory">
+          New check
+        </Link>
+      }
+    >
+      <div className="app-card">
         <div className="ai-review-history-body">
           {history.length === 0 ? (
             <p>No saved Memory Watch runs yet.</p>
@@ -384,6 +389,6 @@ export function MemoryWatchHistoryPage() {
           )}
         </div>
       </div>
-    </div>
+    </AppPage>
   );
 }

@@ -10,10 +10,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { authenticatedFetch } from "../api_client";
 import { AddReviewRulePanel } from "../components/AddReviewRulePanel";
+import { AppPage } from "../components/AppPage";
 import {
   countReviewRules,
   filterReviewRuleSections,
-  reviewRuleSectionId,
   type ReviewRulesApp,
   type ReviewRulesPayload,
   type ReviewRuleSection,
@@ -28,6 +28,7 @@ import { API_BASE_URL } from "../types";
 export function ReviewRulesPage() {
   const [app, setApp] = useState<ReviewRulesApp>("platform");
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("all");
   const [payload, setPayload] = useState<ReviewRulesPayload | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const destroyedRef = useRef(false);
@@ -82,68 +83,107 @@ export function ReviewRulesPage() {
   }, [app, loadRules]);
 
   const sections: ReviewRuleSection[] = payload?.sections ?? [];
-  const visibleSections = filterReviewRuleSections(sections, query);
-  const visibleCount = countReviewRules(visibleSections);
+  const categorySections =
+    category === "all"
+      ? sections
+      : sections.filter((section) => section.name === category);
+  const visibleSections = filterReviewRuleSections(categorySections, query);
+  const visibleRules = visibleSections.flatMap((section) =>
+    section.rules.map((rule) => ({ ...rule, section: section.name }))
+  );
+  const visibleCount = visibleRules.length;
   const totalCount = countReviewRules(sections);
+  const filtersActive = query.trim().length > 0 || category !== "all";
+
+  /**
+   * Reset search and category without changing the selected app.
+   *
+   * @returns void
+   */
+  const handleClearFilters = () => {
+    setQuery("");
+    setCategory("all");
+  };
 
   return (
-    <div className="review-rules-page">
-      <div className="panel select-card review-rules-card">
-        <div className="panel-header">
-          <h2>Review rules</h2>
-          <span className="panel-badge">AI REVIEW</span>
-        </div>
+    <AppPage
+      title="Review rules"
+      subtitle="Define, organize, and maintain the standards used by AI Review."
+    >
+      <AddReviewRulePanel
+        key={app}
+        app={app}
+        sections={sections}
+        onSaved={() => loadRules(app)}
+      />
 
-        <p className="review-rules-intro">
-          These are the codes AI Review scores on every PR. Each code is a
-          check — CQ-01 is conventions, CQ-02 is leftover commented code, and
-          so on. Open a code to read the exact rule.
+      {loadError ? (
+        <p className="ai-review-error" id="review-rules-error">
+          {loadError}
         </p>
+      ) : null}
 
-        <div className="review-rules-toolbar">
-          <div className="form-group">
-            <label htmlFor="review-rules-app">App</label>
-            <select
-              id="review-rules-app"
-              className="form-input"
-              value={app}
-              onChange={(event) => {
-                const nextApp =
-                  event.target.value === "vcapi" ? "vcapi" : "platform";
-                setApp(nextApp);
-                setQuery("");
-              }}
+      <div className="app-card review-rules-browse" id="review-rules-browse">
+        <div className="app-filters" id="review-rules-filters">
+          <span className="app-filters-label">Filters</span>
+          <div className="app-filters-fields">
+            <div className="form-group app-filters-search">
+              <label htmlFor="review-rules-search">Search</label>
+              <input
+                id="review-rules-search"
+                type="search"
+                className="form-input"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search rules..."
+                autoComplete="off"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="review-rules-category">Category</label>
+              <select
+                id="review-rules-category"
+                className="form-input form-select"
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+              >
+                <option value="all">All</option>
+                {sections.map((section) => (
+                  <option key={section.name} value={section.name}>
+                    {section.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label htmlFor="review-rules-app">App</label>
+              <select
+                id="review-rules-app"
+                className="form-input form-select"
+                value={app}
+                onChange={(event) => {
+                  const nextApp =
+                    event.target.value === "vcapi" ? "vcapi" : "platform";
+                  setApp(nextApp);
+                  setQuery("");
+                  setCategory("all");
+                }}
+              >
+                <option value="platform">vsuitePlatform</option>
+                <option value="vcapi">vcapi</option>
+              </select>
+            </div>
+            <button
+              id="review-rules-clear-filters"
+              type="button"
+              className="app-filters-clear"
+              onClick={handleClearFilters}
+              disabled={!filtersActive}
             >
-              <option value="platform">vsuitePlatform</option>
-              <option value="vcapi">vcapi</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label htmlFor="review-rules-search">Search</label>
-            <input
-              id="review-rules-search"
-              type="search"
-              className="form-input"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="CQ-01, translation, timers…"
-              autoComplete="off"
-            />
+              Clear filters
+            </button>
           </div>
         </div>
-
-        <AddReviewRulePanel
-          key={app}
-          app={app}
-          sections={sections}
-          onSaved={() => loadRules(app)}
-        />
-
-        {loadError ? (
-          <p className="ai-review-error" id="review-rules-error">
-            {loadError}
-          </p>
-        ) : null}
 
         {!loadError && payload === null ? (
           <p className="review-rules-empty" id="review-rules-loading">
@@ -159,46 +199,38 @@ export function ReviewRulesPage() {
 
         {payload && visibleCount > 0 ? (
           <p className="review-rules-count" id="review-rules-count">
-            {query.trim()
+            {filtersActive
               ? `${visibleCount} of ${totalCount} rules`
               : `${totalCount} rules`}
           </p>
         ) : null}
 
-        {visibleSections.map((section) => (
-          <section
-            key={section.name}
-            className="review-rules-section"
-            aria-labelledby={`review-rules-section-${reviewRuleSectionId(section.name)}`}
-          >
-            <h3
-              className="review-rules-section-title"
-              id={`review-rules-section-${reviewRuleSectionId(section.name)}`}
-            >
-              {section.name}
-            </h3>
-            <ul className="review-rules-list" role="list">
-              {section.rules.map((rule) => (
-                <li key={rule.id}>
-                  <details
-                    className="review-rule-card"
-                    id={`review-rule-${rule.id}`}
+        {visibleRules.length > 0 ? (
+          <ul className="app-row-list" role="list" id="review-rules-list">
+            {visibleRules.map((rule) => (
+              <li key={rule.id}>
+                <details className="app-row" id={`review-rule-${rule.id}`}>
+                  <summary
+                    className="app-row-summary"
+                    id={`review-rule-summary-${rule.id}`}
                   >
-                    <summary
-                      className="review-rule-summary"
-                      id={`review-rule-summary-${rule.id}`}
-                    >
-                      <span className="review-rule-id">{rule.id}</span>
-                      <span className="review-rule-plain">{rule.plain}</span>
-                    </summary>
-                    <p className="review-rule-official">{rule.rule}</p>
-                  </details>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+                    <span className="app-row-id">{rule.id}</span>
+                    <span className="app-row-copy">
+                      <span className="app-row-title">{rule.plain}</span>
+                      <span className="app-row-desc">{rule.rule}</span>
+                    </span>
+                    <span className="app-row-status">Active</span>
+                    <span className="app-row-chevron" aria-hidden="true">
+                      ›
+                    </span>
+                  </summary>
+                  <p className="app-row-official">{rule.rule}</p>
+                </details>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
-    </div>
+    </AppPage>
   );
 }

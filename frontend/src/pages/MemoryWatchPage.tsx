@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { authenticatedFetch } from "../api_client";
+import { AppPage } from "../components/AppPage";
 import { MemoryWatchResultsPanel } from "../components/MemoryWatchResultsPanel";
 import {
   parseReviewTableRow,
@@ -270,57 +271,63 @@ export function MemoryWatchPage() {
   };
 
   return (
-    <div className="ai-review-page">
-      <div className="panel select-card">
-        <div className="panel-header">
-          <h2>Memory Watch</h2>
-          <span className="panel-badge">HEAP + VIDEO</span>
+    <AppPage
+      title="Memory Watch"
+      subtitle="Run a heap check with video, then confirm the steps before you start."
+    >
+      <div className="app-card">
+        <div className="app-card-intro">
+          <h2 className="app-card-title">Check setup</h2>
+          <p className="app-card-subtitle">
+            Pick the flow and environment. Confirm the step list before the run starts.
+          </p>
         </div>
+        <form onSubmit={handleSubmit} className="app-form">
+          <div className="app-form-grid">
+            <div className="form-group">
+              <label htmlFor="mw-flow">Flow</label>
+              <select
+                id="mw-flow"
+                className="form-input form-select"
+                value={flow}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (isMemoryWatchFlowId(next)) {
+                    setFlow(next);
+                    setStepsConfirmed(false);
+                  }
+                }}
+                disabled={runStatus === "running"}
+              >
+                {FLOW_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <form onSubmit={handleSubmit} className="execution-form">
-          <div className="form-group">
-            <label htmlFor="mw-flow">Flow</label>
-            <select
-              id="mw-flow"
-              className="form-input"
-              value={flow}
-              onChange={(e) => {
-                const next = e.target.value;
-                if (isMemoryWatchFlowId(next)) {
-                  setFlow(next);
-                  setStepsConfirmed(false);
-                }
-              }}
-              disabled={runStatus === "running"}
-            >
-              {FLOW_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="mw-env">Environment</label>
-            <select
-              id="mw-env"
-              className="form-input"
-              value={env}
-              onChange={(e) => {
-                const next = e.target.value;
-                if (isMemoryWatchEnv(next)) {
-                  setEnv(next);
-                }
-              }}
-              disabled={runStatus === "running"}
-            >
-              {ENV_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="form-group">
+              <label htmlFor="mw-env">Environment</label>
+              <select
+                id="mw-env"
+                className="form-input form-select"
+                value={env}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (isMemoryWatchEnv(next)) {
+                    setEnv(next);
+                  }
+                }}
+                disabled={runStatus === "running"}
+              >
+                {ENV_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {ritualFlow ? null : (
@@ -380,13 +387,13 @@ export function MemoryWatchPage() {
               <button
                 id="mw-stop-btn"
                 type="button"
-                className="btn-secondary"
+                className="btn-ghost"
                 onClick={handleStop}
               >
                 Stop
               </button>
             ) : null}
-            <Link id="mw-history-link" className="btn-secondary" to="/memory/history">
+            <Link id="mw-history-link" className="btn-ghost" to="/memory/history">
               History
             </Link>
           </div>
@@ -404,6 +411,6 @@ export function MemoryWatchPage() {
         emptyMessage="No memory check yet."
         emptyLogMessage="Live log will appear here."
       />
-    </div>
+    </AppPage>
   );
 }

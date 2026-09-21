@@ -61,12 +61,18 @@ const renderCases = [
     },
   },
   {
-    description: "renders App and Search fields",
+    description: "renders App, Search, Category, and Add rule accordion",
     setup: () => undefined,
     expectations: () => {
       expect(screen.getByLabelText(/^app$/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/^search$/i)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /add a new rule/i })).toBeInTheDocument();
+      expect(screen.getByLabelText(/^category$/i)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /add rule/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /add rule/i })).toHaveAttribute(
+        "aria-expanded",
+        "false"
+      );
+      expect(screen.queryByRole("button", { name: /check idea/i })).toBeNull();
     },
   },
 ];

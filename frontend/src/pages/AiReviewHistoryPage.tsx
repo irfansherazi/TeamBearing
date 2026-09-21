@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { authenticatedFetch } from "../api_client";
 import { AiReviewResultsPanel } from "../components/AiReviewResultsPanel";
+import { AppPage } from "../components/AppPage";
 import {
   appBadgeClass,
   formatAppLabel,
@@ -139,22 +140,24 @@ export function AiReviewHistoryPage() {
     const outcome = toHistoryOutcome(detail);
     const files = parseChangedFiles(detail.log_text ?? "");
     return (
-      <div className="ai-review-page">
-        <div className="panel ai-review-history">
-          <div className="panel-header">
-            <div className="ai-review-history-header">
-              <button
-                id="ai-review-history-back"
-                type="button"
-                className="btn-back"
-                onClick={handleBackToList}
-              >
-                Back
-              </button>
-              <h2>Review {detail.review_id}</h2>
-            </div>
-            <span className={historyOutcomeClass(outcome)}>{historyOutcomeLabel(outcome)}</span>
-          </div>
+      <AppPage
+        title={`Review ${detail.review_id}`}
+        subtitle="Saved checklist, command, and files for this run."
+        badge={
+          <span className={historyOutcomeClass(outcome)}>{historyOutcomeLabel(outcome)}</span>
+        }
+        actions={
+          <button
+            id="ai-review-history-back"
+            type="button"
+            className="btn-ghost"
+            onClick={handleBackToList}
+          >
+            Back
+          </button>
+        }
+      >
+        <div className="app-card">
           <div className="ai-review-detail-body">
             {loadError ? (
               <p className="ai-review-error" id="ai-review-history-error">
@@ -217,16 +220,16 @@ export function AiReviewHistoryPage() {
           emptyLogMessage=""
           showLog={false}
         />
-      </div>
+      </AppPage>
     );
   }
 
   return (
-    <div className="ai-review-page">
-      <div className="panel ai-review-history">
-        <div className="panel-header">
-          <h2>History</h2>
-        </div>
+    <AppPage
+      title="History"
+      subtitle="Open a saved AI Review to see the checklist and command that ran."
+    >
+      <div className="app-card">
         <div className="ai-review-history-body">
           {loadError ? (
             <p className="ai-review-error" id="ai-review-history-error">
@@ -279,6 +282,6 @@ export function AiReviewHistoryPage() {
           </table>
         </div>
       </div>
-    </div>
+    </AppPage>
   );
 }

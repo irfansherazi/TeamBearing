@@ -41,7 +41,7 @@ const PRODUCT_COLORS: Record<string, string> = {
   psn: "hsl(215, 70%, 58%)",
 };
 
-const DEFAULT_COLOR = "hsl(262, 80%, 65%)";
+const DEFAULT_COLOR = "hsl(174, 72%, 48%)";
 
 // ---------------------------------------------------------------------------
 // Component

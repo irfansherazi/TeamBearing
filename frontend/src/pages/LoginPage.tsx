@@ -1,93 +1,90 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/useAuth';
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/useAuth";
 
-export const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+/**
+ * Email/password login for vReview.
+ *
+ * @returns The login screen
+ */
+export const LoginPage = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const { login, isLoading, error, clearError } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await login(email, password);
-      if (response.mfaRequired) {
-        navigate('/mfa', { replace: true });
-      } else {
-        // Always redirect to dashboard root after successful login
-        navigate('/', { replace: true });
-      }
-    } catch (err) {
-      // Error is handled by AuthProvider state
-    }
+  /**
+   * Submit credentials and route to MFA or home.
+   *
+   * @param event - Form submit event
+   * @returns void
+   */
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    login(email, password)
+      .then((response) => {
+        if (response.mfaRequired) {
+          navigate("/mfa", { replace: true });
+          return;
+        }
+        navigate("/", { replace: true });
+      })
+      .catch(() => undefined);
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '100vh',
-      backgroundColor: 'var(--bg-primary)',
-      color: 'var(--text-primary)',
-      fontFamily: 'var(--font-sans)'
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '400px',
-        padding: '2rem',
-        backgroundColor: 'var(--bg-secondary)',
-        borderRadius: 'var(--radius-md)',
-        boxShadow: 'var(--shadow-lg)',
-        border: '1px solid var(--border)'
-      }}>
-        <h1 style={{ textAlign: 'center', marginBottom: '2rem', fontSize: '1.5rem', fontWeight: 700 }}>vReview Login</h1>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="auth-screen">
+      <div className="app-card auth-card">
+        <div className="app-card-intro">
+          <p className="auth-brand">vReview</p>
+          <h1 className="app-page-title">Sign in</h1>
+          <p className="app-card-subtitle">Use your vCreative account to open AI Review.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="app-form">
           <div className="form-group">
-            <label>Email</label>
-            <input 
-              type="email" 
+            <label htmlFor="login-email">Email</label>
+            <input
+              id="login-email"
+              type="email"
               className="form-input"
               placeholder="Enter your email"
-              value={email} 
-              onChange={(e) => { setEmail(e.target.value); clearError(); }} 
-              required 
-              style={{ width: '100%', boxSizing: 'border-box' }}
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                clearError();
+              }}
+              required
+              autoComplete="username"
             />
           </div>
           <div className="form-group">
-            <label>Password</label>
-            <input 
-              type="password" 
+            <label htmlFor="login-password">Password</label>
+            <input
+              id="login-password"
+              type="password"
               className="form-input"
               placeholder="Enter your password"
-              value={password} 
-              onChange={(e) => { setPassword(e.target.value); clearError(); }} 
-              required 
-              style={{ width: '100%', boxSizing: 'border-box' }}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                clearError();
+              }}
+              required
+              autoComplete="current-password"
             />
           </div>
-          {error && (
-            <div style={{ color: 'var(--status-failed)', fontSize: '0.875rem', textAlign: 'center' }}>
+          {error ? (
+            <p className="ai-review-error" id="login-error">
               {error}
-            </div>
-          )}
-          <button 
-            type="submit" 
-            className={`execute-btn ${isLoading ? 'loading' : ''}`}
+            </p>
+          ) : null}
+          <button
+            id="login-submit"
+            type="submit"
+            className="btn-primary"
             disabled={isLoading}
-            style={{
-              padding: '0.75rem',
-              fontWeight: 'bold',
-              marginTop: '0.5rem',
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}
           >
-            {isLoading ? 'Logging in...' : 'Sign In'}
+            {isLoading ? "Logging in..." : "Sign In"}
           </button>
         </form>
       </div>

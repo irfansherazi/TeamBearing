@@ -48,17 +48,17 @@ export function AiReviewResultsPanel({
   showLog = true,
 }: AiReviewResultsPanelProps) {
   return (
-    <div className="panel ai-review-results">
-      <div className="panel-header">
-        <h2>Results</h2>
+    <div className="app-card ai-review-results">
+      <div className="app-card-intro panel-header">
+        <h2 className="app-card-title">Results</h2>
       </div>
       <div className="ai-review-results-body">
-        <table className="step-table">
+        <table className="step-table ai-review-results-table">
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Status</th>
-              <th>Evidence</th>
+              <th className="ai-review-col-item">Item</th>
+              <th className="ai-review-col-status">Status</th>
+              <th className="ai-review-col-evidence">Evidence</th>
             </tr>
           </thead>
           <tbody>
@@ -69,11 +69,11 @@ export function AiReviewResultsPanel({
             ) : (
               rows.map((row) => (
                 <tr key={row.item} id={`ai-review-row-${row.item}`}>
-                  <td>{row.item}</td>
-                  <td>
+                  <td className="ai-review-col-item">{row.item}</td>
+                  <td className="ai-review-col-status">
                     <span className={reviewStatusClass(row.status)}>{row.status}</span>
                   </td>
-                  <td>{row.evidence}</td>
+                  <td className="ai-review-col-evidence">{row.evidence}</td>
                 </tr>
               ))
             )}

@@ -24,6 +24,15 @@ function renderPanel(onSaved = vi.fn()) {
   );
 }
 
+/**
+ * Expand the Add rule accordion so the form is on screen.
+ *
+ * @returns void
+ */
+function openAddForm() {
+  fireEvent.click(screen.getByRole("button", { name: /add rule/i }));
+}
+
 describe("AddReviewRulePanel", () => {
   beforeEach(() => {
     vi.mocked(authenticatedFetch).mockReset();
@@ -31,12 +40,15 @@ describe("AddReviewRulePanel", () => {
 
   const openCases = [
     {
-      description: "shows the Add a new rule button",
+      description: "shows a collapsed Add rule accordion",
       setup: () => undefined,
       expectations: () => {
-        expect(
-          screen.getByRole("button", { name: /add a new rule/i })
-        ).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /add rule/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /add rule/i })).toHaveAttribute(
+          "aria-expanded",
+          "false"
+        );
+        expect(screen.queryByRole("button", { name: /check idea/i })).toBeNull();
       },
     },
   ];
@@ -66,8 +78,8 @@ describe("AddReviewRulePanel", () => {
         }),
     } as Response);
     renderPanel();
-    fireEvent.click(screen.getByRole("button", { name: /add a new rule/i }));
-    fireEvent.change(screen.getByLabelText(/what should this rule check/i), {
+    openAddForm();
+    fireEvent.change(screen.getByLabelText(/rule description/i), {
       target: { value: "the lazy dog jumps over the brown fox" },
     });
     fireEvent.click(screen.getByRole("button", { name: /check idea/i }));
@@ -119,8 +131,8 @@ describe("AddReviewRulePanel", () => {
       return Promise.resolve({ ok: false, json: () => Promise.resolve({}) } as Response);
     });
     renderPanel(onSaved);
-    fireEvent.click(screen.getByRole("button", { name: /add a new rule/i }));
-    fireEvent.change(screen.getByLabelText(/what should this rule check/i), {
+    openAddForm();
+    fireEvent.change(screen.getByLabelText(/rule description/i), {
       target: { value: "Do not leave empty catch blocks in changed code." },
     });
     fireEvent.click(screen.getByRole("button", { name: /check idea/i }));
@@ -181,8 +193,8 @@ describe("AddReviewRulePanel", () => {
       return Promise.resolve({ ok: false, json: () => Promise.resolve({}) } as Response);
     });
     renderPanel(onSaved);
-    fireEvent.click(screen.getByRole("button", { name: /add a new rule/i }));
-    fireEvent.change(screen.getByLabelText(/what should this rule check/i), {
+    openAddForm();
+    fireEvent.change(screen.getByLabelText(/rule description/i), {
       target: { value: "Do not send email in analytics user properties." },
     });
     fireEvent.click(screen.getByRole("button", { name: /check idea/i }));
@@ -199,15 +211,20 @@ describe("AddReviewRulePanel", () => {
     });
   });
 
-  it("puts Cancel next to Check idea and closes the form", () => {
+  it("puts Cancel next to Check idea and closes the accordion", () => {
     renderPanel();
-    fireEvent.click(screen.getByRole("button", { name: /add a new rule/i }));
+    openAddForm();
     const checkIdea = screen.getByRole("button", { name: /check idea/i });
     const cancel = screen.getByRole("button", { name: /cancel/i });
     expect(checkIdea.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /add a new rule/i })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/rule description/i), {
+      target: { value: "A temporary idea to clear." },
+    });
     fireEvent.click(cancel);
-    expect(screen.getByRole("button", { name: /add a new rule/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /cancel/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /check idea/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /add rule/i })).toHaveAttribute(
+      "aria-expanded",
+      "false"
+    );
   });
 });

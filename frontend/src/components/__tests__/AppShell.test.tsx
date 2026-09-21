@@ -14,7 +14,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { AppShell } from '../AppShell';
 
 vi.mock('../../auth/useAuth', () => ({
-  useAuth: () => ({ logout: vi.fn() }),
+  useAuth: () => ({ logout: vi.fn(() => Promise.resolve()), user: { name: 'Ada Lovelace', email: 'ada@example.com' } }),
 }));
 
 vi.mock('../../hooks/useExecution', () => ({

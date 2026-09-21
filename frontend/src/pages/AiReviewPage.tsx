@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { authenticatedFetch } from "../api_client";
 import { AiReviewResultsPanel } from "../components/AiReviewResultsPanel";
+import { AppPage } from "../components/AppPage";
 import {
   parseReviewTableRow,
   upsertReviewRow,
@@ -205,72 +206,78 @@ export function AiReviewPage() {
   };
 
   return (
-    <div className="ai-review-page">
-      <div className="panel select-card">
-        <div className="panel-header">
-          <h2>AI Review</h2>
-          <span className="panel-badge">vSUITE STANDARDS</span>
+    <AppPage
+      title="Run review"
+      subtitle="Start an AI Review against a branch and watch the checklist live."
+    >
+      <div className="app-card">
+        <div className="app-card-intro">
+          <h2 className="app-card-title">Review setup</h2>
+          <p className="app-card-subtitle">
+            Choose the app, branch, and base. Optional commits narrow the diff.
+          </p>
         </div>
+        <form onSubmit={handleSubmit} className="app-form">
+          <div className="app-form-grid">
+            <div className="form-group">
+              <label htmlFor="ai-review-app">App</label>
+              <select
+                id="ai-review-app"
+                className="form-input form-select"
+                value={app}
+                onChange={(e) => {
+                  const nextApp = e.target.value === "vcapi" ? "vcapi" : "platform";
+                  setApp(nextApp);
+                  setBase(APP_DEFAULT_BASE[nextApp]);
+                }}
+                disabled={runStatus === "running"}
+              >
+                <option value="platform">vsuitePlatform</option>
+                <option value="vcapi">vcapi</option>
+              </select>
+            </div>
 
-        <form onSubmit={handleSubmit} className="execution-form">
-          <div className="form-group">
-            <label htmlFor="ai-review-app">App</label>
-            <select
-              id="ai-review-app"
-              className="form-input"
-              value={app}
-              onChange={(e) => {
-                const nextApp = e.target.value === "vcapi" ? "vcapi" : "platform";
-                setApp(nextApp);
-                setBase(APP_DEFAULT_BASE[nextApp]);
-              }}
-              disabled={runStatus === "running"}
-            >
-              <option value="platform">vsuitePlatform</option>
-              <option value="vcapi">vcapi</option>
-            </select>
-          </div>
+            <div className="form-group">
+              <label htmlFor="ai-review-branch">Branch</label>
+              <input
+                id="ai-review-branch"
+                type="text"
+                className="form-input"
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+                placeholder="feature/my-branch"
+                autoComplete="off"
+                disabled={runStatus === "running"}
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="ai-review-branch">Branch</label>
-            <input
-              id="ai-review-branch"
-              type="text"
-              className="form-input"
-              value={branch}
-              onChange={(e) => setBranch(e.target.value)}
-              placeholder="feature/my-branch"
-              autoComplete="off"
-              disabled={runStatus === "running"}
-            />
-          </div>
+            <div className="form-group">
+              <label htmlFor="ai-review-commits">Commits (optional)</label>
+              <input
+                id="ai-review-commits"
+                type="text"
+                className="form-input"
+                value={commits}
+                onChange={(e) => setCommits(e.target.value)}
+                placeholder="abc123,def456"
+                autoComplete="off"
+                disabled={runStatus === "running"}
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="ai-review-commits">Commits (optional)</label>
-            <input
-              id="ai-review-commits"
-              type="text"
-              className="form-input"
-              value={commits}
-              onChange={(e) => setCommits(e.target.value)}
-              placeholder="abc123,def456"
-              autoComplete="off"
-              disabled={runStatus === "running"}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="ai-review-base">Base branch</label>
-            <input
-              id="ai-review-base"
-              type="text"
-              className="form-input"
-              value={base}
-              onChange={(e) => setBase(e.target.value)}
-              placeholder={APP_DEFAULT_BASE[app]}
-              autoComplete="off"
-              disabled={runStatus === "running"}
-            />
+            <div className="form-group">
+              <label htmlFor="ai-review-base">Base branch</label>
+              <input
+                id="ai-review-base"
+                type="text"
+                className="form-input"
+                value={base}
+                onChange={(e) => setBase(e.target.value)}
+                placeholder={APP_DEFAULT_BASE[app]}
+                autoComplete="off"
+                disabled={runStatus === "running"}
+              />
+            </div>
           </div>
 
           {runError ? (
@@ -292,7 +299,7 @@ export function AiReviewPage() {
               <button
                 id="ai-review-stop-btn"
                 type="button"
-                className="btn-secondary"
+                className="btn-ghost"
                 onClick={handleStop}
               >
                 Stop
@@ -309,6 +316,6 @@ export function AiReviewPage() {
         emptyMessage="No review run yet."
         emptyLogMessage="Live log will appear here."
       />
-    </div>
+    </AppPage>
   );
 }

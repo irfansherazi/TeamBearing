@@ -32,10 +32,10 @@ class MockWebSocket {
 
 const renderCases = [
   {
-    description: "renders the AI Review heading",
+    description: "renders the Run review heading",
     setup: () => undefined,
     expectations: () => {
-      expect(screen.getByRole("heading", { name: /ai review/i })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /run review/i })).toBeInTheDocument();
     },
   },
   {

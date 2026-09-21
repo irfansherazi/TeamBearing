@@ -54,9 +54,9 @@ export function MemoryWatchResultsPanel({
   );
 
   return (
-    <div className="panel ai-review-results">
-      <div className="panel-header">
-        <h2>Results</h2>
+    <div className="app-card ai-review-results">
+      <div className="app-card-intro panel-header">
+        <h2 className="app-card-title">Results</h2>
         {verdict ? (
           <span className={verdict.pass ? "ai-review-status-pass" : "ai-review-status-fail"}>
             {verdict.pass ? "PASS" : "FAIL"}
