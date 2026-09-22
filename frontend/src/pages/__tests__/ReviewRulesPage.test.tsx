@@ -113,6 +113,21 @@ describe("ReviewRulesPage — loaded rules", () => {
     expect(screen.getByText("CQ-02")).toBeInTheDocument();
   });
 
+  it("shows the official description only after the accordion opens", async () => {
+    vi.mocked(authenticatedFetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(platformPayload),
+    } as Response);
+    render(<ReviewRulesPage />);
+    await screen.findByText("CQ-01");
+    const official = screen.getByText(
+      "Code follows team conventions (naming, formatting, structure)."
+    );
+    expect(official).not.toBeVisible();
+    fireEvent.click(screen.getByText(/match how this team already names/i));
+    expect(official).toBeVisible();
+  });
+
   it("filters rules when the search box is used", async () => {
     vi.mocked(authenticatedFetch).mockResolvedValue({
       ok: true,

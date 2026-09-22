@@ -217,14 +217,21 @@ export function ReviewRulesPage() {
                     <span className="app-row-id">{rule.id}</span>
                     <span className="app-row-copy">
                       <span className="app-row-title">{rule.plain}</span>
-                      <span className="app-row-desc">{rule.rule}</span>
                     </span>
                     <span className="app-row-status">Active</span>
                     <span className="app-row-chevron" aria-hidden="true">
                       ›
                     </span>
                   </summary>
-                  <p className="app-row-official">{rule.rule}</p>
+                  <div className="app-row-detail">
+                    <span className="app-row-id" aria-hidden="true" />
+                    <p
+                      className="app-row-official"
+                      id={`review-rule-desc-${rule.id}`}
+                    >
+                      {rule.rule}
+                    </p>
+                  </div>
                 </details>
               </li>
             ))}
