@@ -13,6 +13,12 @@
 
 import { defineConfig } from '@playwright/test';
 import dotenv from 'dotenv';
+
+// Cursor's agent sets this to a temp folder with no Chrome binary.
+if ((process.env.PLAYWRIGHT_BROWSERS_PATH || '').includes('cursor-sandbox-cache')) {
+  delete process.env.PLAYWRIGHT_BROWSERS_PATH;
+}
+
 // Do not override vars already set by the CLI (e.g. memory:test --env=local).
 dotenv.config();
 

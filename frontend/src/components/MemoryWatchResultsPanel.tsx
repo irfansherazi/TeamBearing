@@ -4,6 +4,7 @@ import {
   formatFlowLabel,
   formatMemoryRoundLabel,
   formatMemorySampleStep,
+  memoryWatchPassed,
   type MemoryWatchFailureSummary,
   type MemoryWatchSample,
   type MemoryWatchVerdict,
@@ -47,6 +48,7 @@ export function MemoryWatchResultsPanel({
   collapsibleLog = false,
 }: MemoryWatchResultsPanelProps) {
   const hasStructuredResults = samples.length > 0 || rows.length > 0 || verdict !== null;
+  const passed = memoryWatchPassed(verdict, rows);
   const logContent = (
     <pre ref={logEndRef} className="ai-review-log" aria-label="Memory Watch log">
       {logLines.length > 0 ? logLines.join("\n") : emptyLogMessage}
@@ -58,8 +60,8 @@ export function MemoryWatchResultsPanel({
       <div className="app-card-intro panel-header">
         <h2 className="app-card-title">Results</h2>
         {verdict ? (
-          <span className={verdict.pass ? "ai-review-status-pass" : "ai-review-status-fail"}>
-            {verdict.pass ? "PASS" : "FAIL"}
+          <span className={passed ? "ai-review-status-pass" : "ai-review-status-fail"}>
+            {passed ? "PASS" : "FAIL"}
           </span>
         ) : null}
       </div>

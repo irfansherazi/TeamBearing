@@ -61,12 +61,14 @@ export function formatReportLine(payload: {
  * @param samples - Per-cycle samples
  * @param verdict - Final grade
  * @param flowOk - Whether Playwright steps completed
+ * @param flowError - Step error shown on the FLOW row when steps did not complete
  * @returns Lines to write to stdout
  */
 export function formatResultLines(
     samples: HeapSample[],
     verdict: MemoryVerdict,
-    flowOk: boolean
+    flowOk: boolean,
+    flowError = ''
 ): string[] {
     const lines = [
         '| Item | Status | Evidence |',
@@ -92,6 +94,7 @@ export function formatResultLines(
             verdict.strictlyIncreasing ? 'Heap rose every cycle' : 'No unbounded per-cycle climb'
         )
     );
-    lines.push(formatChecklistRow('FLOW', flowOk ? 'PASS' : 'FAIL', flowOk ? 'Flow steps completed' : 'Flow steps failed'));
+    const flowEvidence = flowOk ? 'Flow steps completed' : (flowError || 'Flow steps failed');
+    lines.push(formatChecklistRow('FLOW', flowOk ? 'PASS' : 'FAIL', flowEvidence));
     return lines;
 }

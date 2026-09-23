@@ -15,6 +15,7 @@ import {
     DEFAULT_FLOW_ID,
     DEFAULT_GC_PASSES,
     FLOW_IDS,
+    flowNeedsGhost,
     flowNeedsWarmup,
     type MemoryFlowId,
 } from '../../memory/constants';
@@ -115,6 +116,7 @@ test.describe('Memory Watch', () => {
         const maxGrowthMb = resolveMaxGrowthMb();
         const env = process.env.TEST_ENV || 'qa';
         const ritual = flowId === 'qo-open-close-snapshot';
+        const needsGhost = flowNeedsGhost(flowId);
         test.setTimeout(ritual ? 600_000 : Math.max(180_000, cycles * 90_000));
 
         let samples: HeapSample[] = [];
@@ -122,7 +124,7 @@ test.describe('Memory Watch', () => {
         let flowOk = true;
         let flowError = '';
 
-        const sessionUser = ritual
+        const sessionUser = ritual || needsGhost
             ? resolveMemoryWatchCredentials(true)
             : resolveMemoryWatchCredentials(false);
         await ensureMemoryWatchSession({
@@ -132,7 +134,7 @@ test.describe('Memory Watch', () => {
             password: sessionUser.password,
             storageDir: STORAGE_DIR,
             storageUser: sessionUser.storageUser,
-            requireGhostPanel: ritual,
+            requireGhostPanel: ritual || needsGhost,
         });
 
         if (ritual) {
@@ -194,6 +196,14 @@ test.describe('Memory Watch', () => {
             verdict = evaluateHeapSeries(usedMb, maxGrowthMb);
         }
 
+        if (!flowOk) {
+            verdict = {
+                ...verdict,
+                pass: false,
+                reason: flowError || 'Flow steps failed',
+            };
+        }
+
         const stamp = new Date().toISOString().replace(/[:.]/g, '-');
         const reportDir = path.resolve(process.cwd(), 'playwright', 'memory-reports', `${stamp}-${flowId}`);
 
@@ -202,7 +212,7 @@ test.describe('Memory Watch', () => {
         }
         process.stdout.write(`${formatVerdictLine(verdict)}\n`);
 
-        const lines = formatResultLines(samples, verdict, flowOk);
+        const lines = formatResultLines(samples, verdict, flowOk, flowError);
         for (const line of lines) {
             process.stdout.write(`${line}\n`);
         }

@@ -5,8 +5,13 @@ export const DEFAULT_GC_PASSES = 3;
 export const ALLOWED_ENVS = ['local', 'qa', 'test', 'smoke'] as const;
 export const PO_LIST_PATH = '/#/vpro/production-orders/folder/all';
 export const AI_INTAKE_PATH = '/#/vpro/ai-intake';
-export const SPOT_ROW_SELECTOR =
-    'tr.p-datatable-selectable-row, tr[app-vppo-spot-row], .p-datatable-tbody tr';
+export const SPOT_ROW_SELECTOR = [
+    'tr[app-vppo-spot-row]',
+    'tr.p-datatable-selectable-row',
+    'p-table tbody tr:not(.p-datatable-emptymessage)',
+    '.p-datatable-tbody tr:not(.p-datatable-emptymessage)',
+    '.compact-card',
+].join(', ');
 export const DETAILS_SELECTOR =
     'app-production-order-details, #qo-form-panel, .spot-detail, .po-detail';
 export const SEARCH_PANEL_SELECTOR =
@@ -38,10 +43,20 @@ export function flowNeedsWarmup(flowId: MemoryFlowId): boolean {
     return flowId === 'po-open-spot-warm';
 }
 
+/**
+ * True when this flow must ghost as Demo Prod Dir before measuring the list.
+ *
+ * @param flowId - Recipe id
+ * @returns Whether an admin login and ghost step run first
+ */
+export function flowNeedsGhost(flowId: MemoryFlowId): boolean {
+    return flowId === 'po-open-spot-warm';
+}
+
 export const FLOW_LABELS: Record<MemoryFlowId, string> = {
     'qo-open-close-snapshot': 'Production Orders — Quick Order open/close snapshots',
     'po-open-spot': 'Production Orders — open and close spot',
-    'po-open-spot-warm': 'Production Orders — open/close after list is loaded',
+    'po-open-spot-warm': 'Production Orders — ghost as Demo Prod Dir, then open/close',
     'po-search-panel': 'Production Orders — open and close search panel',
     'ai-intake-open-close': 'AI Intake — open and leave',
     'sidebar-open-close': 'Production Orders — open and close sidebar',
@@ -69,7 +84,7 @@ export const FLOW_PREVIEW_STEPS: Record<MemoryFlowId, string[]> = {
         'Repeat for the cycle count',
     ],
     'po-open-spot-warm': [
-        'Open Production Orders and wait for the list (not measured)',
+        'Ghost in as Demo Prod Dir, then open the list (not measured)',
         'Take the baseline snapshot on the loaded list',
         'Open the first spot',
         'Return to the list',

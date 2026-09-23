@@ -360,6 +360,8 @@ async def _run_memory_watch_subprocess(
                     growth_mb = float(verdict.get("growthMb"))
                 except (TypeError, ValueError):
                     growth_mb = None
+        if any(str(row.get("status", "")).upper() == "FAIL" for row in rows):
+            verdict_pass = False
         report_dir = ""
         video_file = ""
         if isinstance(report, dict):

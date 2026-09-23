@@ -57,7 +57,7 @@ export interface MemoryWatchHistoryDetail extends MemoryWatchHistoryItem {
 export const FLOW_OPTIONS: { id: MemoryWatchFlowId; label: string }[] = [
   { id: "qo-open-close-snapshot", label: "Production Orders — Quick Order open/close snapshots" },
   { id: "po-open-spot", label: "Production Orders — open and close spot" },
-  { id: "po-open-spot-warm", label: "Production Orders — open/close after list is loaded" },
+  { id: "po-open-spot-warm", label: "Production Orders — ghost as Demo Prod Dir, then open/close" },
   { id: "po-search-panel", label: "Production Orders — open and close search" },
   { id: "ai-intake-open-close", label: "AI Intake — open and leave" },
   { id: "sidebar-open-close", label: "Production Orders — open and close sidebar" },
@@ -92,7 +92,7 @@ const FLOW_PREVIEW_STEPS: Record<MemoryWatchFlowId, string[]> = {
     "Repeat for the cycle count",
   ],
   "po-open-spot-warm": [
-    "Open Production Orders and wait for the list (not measured)",
+    "Ghost in as Demo Prod Dir, then open the list (not measured)",
     "Take the baseline snapshot on the loaded list",
     "Open the first spot",
     "Return to the list",
@@ -290,7 +290,7 @@ export function formatMemorySampleStep(flowId: string, sample: MemoryWatchSample
   if (sample.cycle === 0) {
     switch (flowId) {
       case "po-open-spot-warm":
-        return "Start — list already loaded";
+        return "Start — Demo Prod Dir list loaded";
       case "po-open-spot":
         return "Start — dashboard";
       default:
@@ -363,6 +363,24 @@ export function memoryRunStatusClass(status: string): string {
  * @param item - History list item
  * @returns PASS / FAIL / RUNNING / STOPPED
  */
+/**
+ * Overall result for the Results badge.
+ * Heap can be inside the limit while a flow step still failed.
+ *
+ * @param verdict - Parsed heap verdict, or null when the run has no grade yet
+ * @param rows - Checklist rows such as HEAP, TREND, and FLOW
+ * @returns True only when the heap grade passed and no checklist row failed
+ */
+export function memoryWatchPassed(
+  verdict: MemoryWatchVerdict | null,
+  rows: { status: string }[]
+): boolean {
+  if (!verdict?.pass) {
+    return false;
+  }
+  return !rows.some((row) => row.status.toUpperCase() === "FAIL");
+}
+
 export function memoryOutcomeLabel(item: MemoryWatchHistoryItem): string {
   if (item.status === "running") {
     return "RUNNING";

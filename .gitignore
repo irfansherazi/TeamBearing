@@ -14,7 +14,6 @@
 
 # ── AI review output ──────────────────────────────────────────────
 .ai-review/
-.env
 !.env.example
 
 # ── Python ────────────────────────────────────────────────────────
@@ -49,7 +48,6 @@ frontend/coverage/
 .mcp.json
 .ruff_cache/
 .idea/
-.vscode/
 *.swp
 *.swo
 *~
@@ -154,3 +152,4 @@ _run_nightly_tests*.py
 storage/learned_workflows.json
 storage/ac_parse_cache/
 storage/ac_parse_baseline/*.provisional.json
+config.bat
