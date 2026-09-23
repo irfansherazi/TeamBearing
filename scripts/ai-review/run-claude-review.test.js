@@ -1,12 +1,18 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const {
     CLAUDE_DISALLOWED_TOOLS,
     buildClaudeArgs,
+    buildReviewArgs,
+    writeAgentPromptFile,
+    commandLaunch,
     buildReviewerPrompt,
     extractIdsFromText,
     formatTable,
-    getClaudeBin
+    resolveReviewCommand
 } = require('./run-claude-review');
 
 describe('buildClaudeArgs', () => {
@@ -89,8 +95,80 @@ describe('formatTable', () => {
     });
 });
 
-describe('getClaudeBin', () => {
-    test('uses the claude executable on PATH', () => {
-        assert.equal(getClaudeBin(), 'claude');
+describe('commandLaunch', () => {
+    test('starts Windows agent.cmd through its PowerShell script', () => {
+        const launch = commandLaunch(
+            'C:\\cursor-agent\\agent.cmd',
+            ['-p', 'review'],
+            'win32',
+            (file) => file.endsWith('.ps1')
+        );
+        assert.equal(launch.file, 'powershell.exe');
+        assert.equal(launch.args.includes('C:\\cursor-agent\\agent.ps1'), true);
+        assert.equal(launch.args[launch.args.length - 1], 'review');
+    });
+});
+
+describe('writeAgentPromptFile', () => {
+    test('keeps --run-tests in the file and out of the command line', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-review-'));
+        const cliPrompt = writeAgentPromptFile('require --run-tests before PR', dir);
+        const saved = fs.readFileSync(path.join(dir, 'ai-review-prompt.txt'), 'utf8');
+        assert.equal(saved.includes('--run-tests'), true);
+        assert.equal(cliPrompt.includes('--run-tests'), false);
+        assert.equal(cliPrompt.includes('ai-review-prompt.txt'), true);
+    });
+});
+
+describe('buildReviewArgs', () => {
+    test('uses Cursor agent flags when kind is agent', () => {
+        const args = buildReviewArgs('agent', 'review this');
+        assert.deepEqual(args, ['-p', '--mode', 'ask', '--output-format', 'text', '--trust', '--', 'review this']);
+    });
+});
+
+describe('resolveReviewCommand', () => {
+    const cases = [
+        {
+            description: 'uses claude when only claude is installed',
+            setup: () => ({ env: {}, lookup: (name) => (name === 'claude' ? 'claude' : '') }),
+            expectations: (result) => {
+                assert.deepEqual(result, { bin: 'claude', kind: 'claude' });
+            }
+        },
+        {
+            description: 'uses agent when only Cursor agent is installed',
+            setup: () => ({
+                env: {},
+                lookup: (name) => (name === 'agent' ? '/Users/mac/.local/bin/agent' : '')
+            }),
+            expectations: (result) => {
+                assert.deepEqual(result, { bin: '/Users/mac/.local/bin/agent', kind: 'agent' });
+            }
+        },
+        {
+            description: 'keeps claude when both tools are installed',
+            setup: () => ({ env: {}, lookup: () => 'found' }),
+            expectations: (result) => {
+                assert.equal(result.kind, 'claude');
+            }
+        },
+        {
+            description: 'honors AI_REVIEW_BIN=agent and uses the installed path',
+            setup: () => ({
+                env: { AI_REVIEW_BIN: 'agent' },
+                lookup: (name) => (name === 'agent' ? 'C:\\cursor-agent\\agent.cmd' : '')
+            }),
+            expectations: (result) => {
+                assert.deepEqual(result, { bin: 'C:\\cursor-agent\\agent.cmd', kind: 'agent' });
+            }
+        }
+    ];
+
+    cases.forEach(({ description, setup, expectations }) => {
+        test(description, () => {
+            const { env, lookup } = setup();
+            expectations(resolveReviewCommand(env, lookup));
+        });
     });
 });
