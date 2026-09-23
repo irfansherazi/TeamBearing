@@ -11,12 +11,16 @@ import {
     FLOW_IDS,
     FLOW_LABELS,
     PO_LIST_PATH,
+    RITUAL_FIRST_GHOST,
+    RITUAL_FIRST_GHOST_FALLBACKS,
     SEARCH_PANEL_SELECTOR,
     SIDEBAR_SELECTOR,
     SPOT_ROW_SELECTOR,
+    flowNeedsGhost,
     flowNeedsWarmup,
     type MemoryFlowId,
 } from './constants';
+import { ghostAsOneOf } from './lib/ghostAs';
 
 const SETTLE_MS = 2000;
 
@@ -83,6 +87,11 @@ export async function goToProductionOrders(page: Page): Promise<void> {
  */
 async function runPoOpenSpot(page: Page): Promise<void> {
     await goToProductionOrders(page);
+    await page
+        .locator('app-v-loader, #loader, #loader-wrapper')
+        .first()
+        .waitFor({ state: 'hidden', timeout: 15000 })
+        .catch(() => undefined);
     const row = page.locator(SPOT_ROW_SELECTOR).first();
     const rowVisible = await appeared(row.waitFor({ state: 'visible', timeout: 30000 }));
     if (!rowVisible) {
@@ -163,6 +172,10 @@ async function runSidebar(page: Page): Promise<void> {
 export async function warmupFlow(page: Page, flowId: MemoryFlowId): Promise<void> {
     if (!flowNeedsWarmup(flowId)) {
         return;
+    }
+    if (flowNeedsGhost(flowId)) {
+        process.stdout.write(`Ghosting in as ${RITUAL_FIRST_GHOST}\n`);
+        await ghostAsOneOf(page, [RITUAL_FIRST_GHOST, ...RITUAL_FIRST_GHOST_FALLBACKS]);
     }
     await goToProductionOrders(page);
 }

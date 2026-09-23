@@ -10,6 +10,7 @@ import {
   isFixedRitualFlow,
   latestSamplesByCycle,
   memoryOutcomeLabel,
+  memoryWatchPassed,
   parseMemoryChecklistFromLog,
   parseMemorySampleLine,
   parseMemoryVerdictLine,
@@ -67,7 +68,7 @@ describe("parseMemoryVerdictLine", () => {
 describe("formatMemorySampleStep", () => {
   const stepLabelCases = [
     {
-      description: "names warm-flow start as list already loaded",
+      description: "names warm-flow start as Demo Prod Dir list loaded",
       setup: () => ({
         flowId: "po-open-spot-warm",
         sample: {
@@ -80,7 +81,7 @@ describe("formatMemorySampleStep", () => {
         },
       }),
       expectations: (result: string) => {
-        expect(result).toMatch(/list already loaded/i);
+        expect(result).toMatch(/Demo Prod Dir list loaded/i);
       },
     },
     {
@@ -169,6 +170,7 @@ describe("getFlowPreviewSteps", () => {
       description: "returns warmup steps for po-open-spot-warm",
       setup: () => "po-open-spot-warm",
       expectations: (result: string[]) => {
+        expect(result[0]).toMatch(/Demo Prod Dir/i);
         expect(result[0]).toMatch(/not measured/i);
         expect(result.some((step) => /baseline snapshot on the loaded list/i.test(step))).toBe(
           true
@@ -197,6 +199,29 @@ describe("parseMemoryChecklistFromLog", () => {
     const rows = parseMemoryChecklistFromLog("| HEAP | PASS | +8 MB |\n| FLOW | PASS | ok |");
     expect(rows[0].item).toBe("HEAP");
     expect(rows[0].status).toBe("PASS");
+  });
+});
+
+describe("memoryWatchPassed", () => {
+  it("fails the badge when the flow row failed even if the heap passed", () => {
+    expect(
+      memoryWatchPassed(
+        { pass: true, growthMb: 0, reason: "Heap +0.00 MB vs 15 MB limit" },
+        [
+          { item: "HEAP", status: "PASS", evidence: "Heap +0.00 MB vs 15 MB limit" },
+          { item: "FLOW", status: "FAIL", evidence: "No Production Order row found to open" },
+        ]
+      )
+    ).toBe(false);
+  });
+
+  it("passes only when the heap grade and every checklist row passed", () => {
+    expect(
+      memoryWatchPassed(
+        { pass: true, growthMb: 1, reason: "ok" },
+        [{ item: "FLOW", status: "PASS", evidence: "Flow steps completed" }]
+      )
+    ).toBe(true);
   });
 });
 
